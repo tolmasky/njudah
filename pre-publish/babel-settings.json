@@ -1,0 +1,9 @@
+{
+    "presets":["es2015-node4", "stage-3"],
+    "plugins":
+    [
+        "generic-jsx/babel-plugin-transform-generic-jsx",
+        "babel-plugin-transform-object-rest-spread",
+        ["parser-opts", { "allowReturnOutsideFunction": true }]
+    ]
+}

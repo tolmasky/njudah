@@ -1,0 +1,17 @@
+{
+  "name": "builder",
+  "version": "1.0.0",
+  "description": "",
+  "main": "builder.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "babel-core": "^6.23.1",
+    "micromatch": "^2.3.11",
+    "mkdirp": "^0.5.1"
+  }
+}
