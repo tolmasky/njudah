@@ -8,7 +8,7 @@ const getFileChecksum = require("./get-file-checksum");
 const getFileDescription = require("./get-file-description");
 
 const { transform, find: findTransform } = require("./transform");
-const { refine, deref, set, setIn, derefIn, exists } = require("@njudah/cursor");
+const { refine, deref, set, exists } = require("@njudah/cursor");
 
 const copy = require("./copy");
 const mkdir = require("./mkdir");
@@ -90,9 +90,9 @@ function File({ source, cache, checksum, transforms, state, destination })
 
 function Directory({ source, destination, cache, files, checksum, transforms, ignore, state })
 {
-    const hasChecksum = files.every(aPath => derefIn(state, aPath + "-checksum", false));
+    const hasChecksum = files.every(aPath => deref.in(state, aPath + "-checksum", false));
     const checksumValue = set(checksum, hasChecksum &&
-        getChecksum(...files.map(aPath => derefIn(state, aPath + "-checksum", false))));
+        getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
     const completed = destination && mkdir.await(refine(state, "mkdir"), { destination });
 
     return  <id path = { source } checksum = { checksumValue } >

@@ -138,7 +138,7 @@ function getPendingAsynchronousFunctions(anObject)
 
 function getCachedAsynchronousFunctions(aCacheKey, aPredicate, anObject)
 {
-    if (!anObject)
+    if (!anObject || anObject.__asynchronousIgnore)
         return EmptyMap;
 
     if (anObject[aCacheKey])

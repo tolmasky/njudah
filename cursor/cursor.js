@@ -1,5 +1,8 @@
 
-var I = require("immutable");
+const I = require("immutable");
+const isIterable = I.Iterable.isIterable;
+
+const isArray = Array.isArray;
 
 
 var missing = { };
@@ -34,38 +37,45 @@ function Cursor(aParentCursorOrBaseObject, aKey)
     }
 }
 
-Cursor.prototype.deref = function()
-{
-    if (this.rootCursor === this)
-        return this.object;
+module.exports.Cursor = Cursor;
 
-    if (this.cachedRoot !== this.rootCursor.object)
-    {
-        this.cachedRoot = this.rootCursor.object;
-
-        var parentValue = this.parent.deref();
-        
-        if (this.cachedParentValue !== parentValue)
-        {
-            this.cachedDeref = parentValue === missing ? missing : parentValue.get(this.key, missing);
-            this.cachedParentValue = parentValue;
-        }
-    }
-
-    return this.cachedDeref;
-}
-
-Cursor.isCursor = function(aCursorOrObject)
+function isCursor(aCursorOrObject)
 {
     return aCursorOrObject instanceof Cursor;
 }
 
-Cursor.deref = function(aCursorOrObject, aDefaultValue)
+module.exports.isCursor = isCursor;
+
+function derefCursor(aCursor)
 {
-    if (!Cursor.isCursor(aCursorOrObject))
+    const rootCursor = aCursor.rootCursor;
+
+    if (rootCursor === aCursor)
+        return aCursor.object;
+
+    const rootObject = rootCursor.object;
+    
+    if (aCursor.cachedRoot === rootObject)
+        return aCursor.cachedDeref;
+
+    aCursor.cachedRoot = rootObject;
+
+    const parentValue = derefCursor(aCursor.parent);
+        
+    if (aCursor.cachedParentValue === parentValue)
+        return aCursor.cachedDeref;
+
+    aCursor.cachedParentValue = parentValue;
+    
+    return aCursor.cachedDeref = parentValue === missing ? missing : parentValue.get(aCursor.key, missing);
+}
+
+function deref(aCursorOrObject, aDefaultValue)
+{
+    if (!isCursor(aCursorOrObject))
         return aCursorOrObject === undefined && arguments.length > 1 ? aDefaultValue : aCursorOrObject;
 
-    var value = aCursorOrObject.deref();
+    const value = derefCursor(aCursorOrObject);
 
     if (value === missing && arguments.length < 2)
         throw new Error("Could not dereference cursor at " + aCursorOrObject.keyPath);
@@ -73,170 +83,137 @@ Cursor.deref = function(aCursorOrObject, aDefaultValue)
     return value !== missing ? value : aDefaultValue;
 }
 
-Cursor.default = function(aCursorOrObject, aDefaultValue)
-{
-    if (!Cursor.isCursor(aCursorOrObject))
-        return aCursorOrObject === undefined && arguments.length > 1 ? aDefaultValue : aCursorOrObject;
-
-    if (!Cursor.exists(aCursorOrObject))
-    {
-        Cursor.set(aCursorOrObject, aDefaultValue);
-
-        return aDefaultValue;
-    }
-
-    return Cursor.deref(aCursorOrObject);
-}
+module.exports.deref = deref;
 
 //    return Cursor.deref(Cursor.refine(aCursorOrObject, aKeyPath), aDefaultValue);
-Cursor.derefIn = function(aCursorOrObject, aKeyPath, aDefaultValue)
+function derefIn(aCursorOrObject, aKeyPath, aDefaultValue)
 {
-    var value = Cursor.deref(aCursorOrObject, missing);
+    var value = deref(aCursorOrObject, missing);
 
     if (value === missing)
         if (arguments.length < 3)
-            throw new Error("Could not dereference cursor at [" + aCursorOrObject.keyPath + "] ++ [" + aKeyPath + "]");
+            throw new Error("Could not dereference cursor at [" + aCursorOrObject + "] ++ [" + aKeyPath + "]");
         else
             return aDefaultValue;
 
-    if (Array.isArray(aKeyPath) || I.Iterable.isIterable(aKeyPath))
+    if (isArray(aKeyPath) || isIterable(aKeyPath))
         return value.getIn(aKeyPath, aDefaultValue);
-try {
-    return value.get(aKeyPath, aDefaultValue); } catch(e) { console.log("OK " + aKeyPath); throw e}
 
+    return value.get(aKeyPath, aDefaultValue);
 }
 
-Cursor.refine = function(aCursorOrObject, aKeyPath)
-{
-    if (!Cursor.isCursor(aCursorOrObject))
-        return Cursor.derefIn(aCursorOrObject, aKeyPath);
+module.exports.deref.in = derefIn;
 
-    if (Array.isArray(aKeyPath) || I.Iterable.isIterable(aKeyPath))
+module.exports.setDefault = function setDefault(aCursorOrObject, aDefaultValue)
+{
+    if (!isCursor(aCursorOrObject))
+        return aCursorOrObject === undefined && arguments.length > 1 ? aDefaultValue : aCursorOrObject;
+
+    if (!exists(aCursorOrObject))
+        return set(aCursorOrObject, aDefaultValue);
+
+    return derefCursor(aCursorOrObject);
+}
+
+module.exports.refine = function refine(aCursorOrObject, aKeyPath)
+{
+    if (!isCursor(aCursorOrObject))
+        return derefIn(aCursorOrObject, aKeyPath);
+
+    if (isArray(aKeyPath) || isIterable(aKeyPath))
         return aKeyPath.reduce(Cursor, aCursorOrObject);
 
     return Cursor(aCursorOrObject, aKeyPath);
 }
 
-Cursor.refineDefault = function(aCursorOrObject, aKeyPath, aDefaultValue)
-{
-   var cursor = Cursor.refine(aCursorOrObject, aKeyPath);
-
-   Cursor.default(cursor, aDefaultValue);
-   return cursor;
-};
-
-Cursor.remove = function(aCursorOrObject)
+module.exports.remove = function remove(aCursorOrObject)
 {
     Cursor.removeIn(aCursorOrObject, []);
 }
 
-Cursor.removeIn = function(aCursorOrObject, aKeyPath)
+function removeIn(aCursorOrObject, aKeyPath)
 {
-    if (!Cursor.isCursor(aCursorOrObject))
+    if (!isCursor(aCursorOrObject))
         throw new Error("Immutable value used as updatable cursor " + aCursorOrObject);
 
-    var rootObject = aCursorOrObject.rootCursor.object;
+    const rootObject = aCursorOrObject.rootCursor.object;
 
     aCursorOrObject.rootCursor.object = rootObject.removeIn(aCursorOrObject.keyPath.concat(aKeyPath));
 }
 
-Cursor.update = function(aCursorOrObject, aDefaultValue, aFunction)
-{
-    if (arguments.length > 2)
-        return Cursor.updateIn(aCursorOrObject, [], aDefaultValue, aFunction);
+module.exports.remove.in = removeIn;
 
-    return Cursor.updateIn(aCursorOrObject, [], aDefaultValue);
-}
-
-Cursor.updateIn = function(aCursorOrObject, aKeyPath, aDefaultValue, aFunction)
+module.exports.update = function update(aCursorOrObject, aDefaultValue, aFunction)
 {
-    if (!Cursor.isCursor(aCursorOrObject))
+    if (!isCursor(aCursorOrObject))
         throw new Error("Immutable value used as updatable cursor " + aCursorOrObject);
 
-    var rootObject = aCursorOrObject.rootCursor.object;
+    const rootObject = aCursorOrObject.rootCursor.object;
 
-    aCursorOrObject.rootCursor.object = rootObject.updateIn(aCursorOrObject.keyPath.concat(aKeyPath), aDefaultValue, aFunction);
+    aCursorOrObject.rootCursor.object = rootObject.updateIn(aCursorOrObject.keyPath, aDefaultValue, aFunction);
 }
 
-Cursor.setIn = function(aCursorOrObject, aKeyPath, aValue)
+module.exports.update.in = function updateIn(aCursorOrObject, aKeyPath, aDefaultValue, aFunction)
 {
-    if (!Cursor.isCursor(aCursorOrObject))
+    if (!isCursor(aCursorOrObject))
         throw new Error("Immutable value used as updatable cursor " + aCursorOrObject);
 
-    var rootObject = aCursorOrObject.rootCursor.object;
+    const rootObject = aCursorOrObject.rootCursor.object;
+    const keyPath = aCursorOrObject.keyPath.concat(aKeyPath);
 
-    aCursorOrObject.rootCursor.object = rootObject.setIn(aCursorOrObject.keyPath.concat(aKeyPath), aValue);
+    aCursorOrObject.rootCursor.object = rootObject.updateIn(keyPath, aDefaultValue, aFunction);
 }
 
-Cursor.set = function(aCursorOrObject, aValue)
+function set(aCursorOrObject, aValue)
 {
-    if (!Cursor.isCursor(aCursorOrObject))
+    if (!isCursor(aCursorOrObject))
         throw new Error("Immutable value used as updatable cursor " + aCursorOrObject);
 
-    var rootObject = aCursorOrObject.rootCursor.object;
+    const rootObject = aCursorOrObject.rootCursor.object;
 
-    aCursorOrObject.rootCursor.object = rootObject !== null ? rootObject.setIn(aCursorOrObject.keyPath, aValue) : aValue;
-    
+    aCursorOrObject.rootCursor.object = rootObject !== null ?
+        rootObject.setIn(aCursorOrObject.keyPath, aValue) : aValue;
+
     return aValue;
 };
 
-Cursor.invert = function(aCursorOrObject)
+module.exports.set = set;
+
+function setIn(aCursorOrObject, aKeyPath, aValue)
 {
-    Cursor.set(aCursorOrObject, !Cursor.deref(aCursorOrObject));
-}
-
-Cursor.invertIn = function(aCursorOrObject, aKeyPath)
-{
-    Cursor.setIn(aCursorOrObject, aKeyPath, !Cursor.derefIn(aCursorOrObject, aKeyPath));
-}
-
-Cursor.exists = function(aCursorOrObject)
-{
-    return Cursor.deref(aCursorOrObject, missing) !== missing;
-}
-
-Cursor.existsIn = function(aCursorOrObject, aKeyPath)
-{
-    return Cursor.derefIn(aCursorOrObject, aKeyPath, missing) !== missing;
-}
-
-Cursor.setUndoAction = function(aCursor, aTitle)
-{
-    return Cursor.setIn(aCursor, "undoAction", I.Map({title: aTitle, timestamp: (new Date()).getTime()}))
-}
-
-Cursor.map = function(aFunction, aCursorOrObject)
-{
-    var object = Cursor.deref(aCursorOrObject);
-
-    return object.map(function(_, aKey)
-    {
-        return aFunction(Cursor.refine(aCursorOrObject, aKey), aKey);
-    });
-};
-
-Cursor.filter = function(aFunction, aCursorOrObject)
-{
-    var object = Cursor.deref(aCursorOrObject);
-
-    return object.filter(function(_, aKey)
-    {
-        return aFunction(Cursor.refine(aCursorOrObject, aKey), aKey);
-    });
-};
-
-
-Cursor.falsify = function(aCursorOrObject)
-{
-    return Cursor.falsifyIn(aCursorOrObject, []);
-}
-
-Cursor.falsifyIn = function(aCursorOrObject, aKeyPath)
-{
-    if (!Cursor.isCursor(aCursorOrObject))
+    if (!isCursor(aCursorOrObject))
         throw new Error("Immutable value used as updatable cursor " + aCursorOrObject);
 
-    Cursor.setIn(aCursorOrObject, aKeyPath, false);
+    const rootObject = aCursorOrObject.rootCursor.object;
+    const keyPath = aCursorOrObject.keyPath.concat(aKeyPath);
+
+    aCursorOrObject.rootCursor.object = rootObject.setIn(keyPath, aValue);
+
+    return aValue;
 }
 
-module.exports = Cursor;
+module.exports.set.in = setIn;
+
+module.exports.invert = function(aCursorOrObject)
+{
+    return set(aCursorOrObject, !deref(aCursorOrObject));
+}
+
+module.exports.invert.in = function(aCursorOrObject, aKeyPath)
+{
+    return setIn(aCursorOrObject, aKeyPath, !derefIn(aCursorOrObject, aKeyPath));
+}
+
+function exists(aCursorOrObject)
+{
+    return deref(aCursorOrObject, missing) !== missing;
+}
+
+module.exports.exists = exists;
+
+function existsIn(aCursorOrObject, aKeyPath)
+{
+    return derefIn(aCursorOrObject, aKeyPath, missing) !== missing;
+}
+
+module.exports.existsIn = existsIn;

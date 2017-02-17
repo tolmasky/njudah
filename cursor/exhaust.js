@@ -10,7 +10,7 @@ const ArrayFilter = Array.prototype.filter;
 const isArray = Array.isArray;
 const ArrayMap = Array.prototype.map;
 
-const Cursor = require("./cursor");
+const { deref, Cursor, isCursor } = require("./cursor");
 
 const I = require("immutable");
 const isList = I.List.isList;
@@ -85,15 +85,15 @@ function serialize(attributes)
 
     function serialize(anAttribute)
     {
-        if (!Cursor.isCursor(anAttribute))
-            return { value: Cursor.deref(anAttribute) };
+        if (!isCursor(anAttribute))
+            return { value: deref(anAttribute) };
 
-        const value = Cursor.deref(anAttribute, EMPTY);
+        const value = deref(anAttribute, EMPTY);
 
         if (value === EMPTY)
             return { keyPath: anAttribute.keyPath };
 
-        return { keyPath: anAttribute.keyPath, value: Cursor.deref(anAttribute, EMPTY) };
+        return { keyPath: anAttribute.keyPath, value: deref(anAttribute, EMPTY) };
     }
 
     return serialized;
