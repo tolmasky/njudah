@@ -1,21 +1,7 @@
 
-var path = require("path");
-var oldResolveLookupPaths = require("module")._resolveLookupPaths;
-
-require("module")._resolveLookupPaths = function(request, parent)
-{
-    var result = oldResolveLookupPaths(request, parent);
-
-    return [result[0], result[1].concat(path.join(__dirname, "node_modules"), path.dirname(path.dirname(__dirname)))];
-}
-
-require("babel-register")(Object.create(require("./babel-settings"),
-{
-    ignore:
+require("./setup");
+require("@njudah/builder/promisified")(require("./build"))
+    .then(function (x)
     {
-        value: "**/node_modules",
-        configurable: true
-    }
-}));
-
-require("@njudah/builder/promisified")(require("./build"));
+        console.log(x);
+    });;

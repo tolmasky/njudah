@@ -1,12 +1,12 @@
 {
   "name": "get-checksum",
   "version": "1.0.0",
-  "description": "",
+  "description": "Generate SHA 256 checksum",
   "main": "get-checksum.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "author": "Francisco Ryan Tolmasky I",
+  "license": "MIT"
 }

@@ -1,15 +1,15 @@
 {
   "name": "@njudah/program",
   "version": "1.0.0",
-  "description": "",
+  "description": "Basic program",
   "main": "program.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Francisco Ryan Tolmasky I",
   "license": "ISC",
-  "peer-dependencies": {
+  "peerDependencies": {
     "immutable": "3.8.1"
   }
 }

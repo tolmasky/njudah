@@ -1,14 +1,19 @@
 {
   "name": "cursor",
   "version": "1.0.0",
-  "description": "",
+  "description": "Cursor program with tree",
   "main": "cursor.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Francisco Ryan Tolmasky I",
+  "license": "MIT",
   "dependencies": {
+  },
+  "peerDependencies": {
+    "immutable": "3.8.1",
+    "@njudah/get-checksum": "1.0.0",
+    "@njudah/program": "1.0.0"
   }
 }
