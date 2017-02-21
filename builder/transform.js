@@ -20,11 +20,11 @@ function transform({ source, destination, children:[aFunction] })
         {
             if (!err)
             {
-                console.log("SKIPPING " + source);
+//                console.log("SKIPPING " + source);
                 return resolve(destination);
             }
             
-            console.log("SOING " + source);
+            console.log("TRANSFORMING " + source);
             
             readFile(source, "utf-8", function (err, contents)
             {

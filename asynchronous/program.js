@@ -33,7 +33,10 @@ module.exports = function (aState, update, pull)
 
             return exhaust(responseState, { });
         })(state, anEvent);
-    }, pull);
+    }, function (aState)
+    {
+        pull(aState, getPendingAsynchronousFunctions(aState).size <= 0);
+    });
     const pushAsynchronousResponse = getPushAsynchronousResponse(push);
 
     return push;

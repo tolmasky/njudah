@@ -9,7 +9,6 @@
   "author": "Francisco Ryan Tolmasky I",
   "license": "MIT",
   "dependencies": {
-    "babel-plugin-parser-opts": "^1.0.1",
     "babel-plugin-transform-object-rest-spread": "^6.23.0",
     "babel-preset-es2015-node4": "^2.1.1",
     "babel-preset-es2015-node6": "^0.4.0",

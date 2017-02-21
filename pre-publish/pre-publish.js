@@ -18,4 +18,4 @@ require("babel-register")(Object.create(require("./babel-settings"),
     }
 }));
 
-require("@njudah/builder/program")(require("./build"));
+require("@njudah/builder/promisified")(require("./build"));

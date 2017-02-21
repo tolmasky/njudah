@@ -3,7 +3,6 @@
     "plugins":
     [
         "generic-jsx/babel-plugin-transform-generic-jsx",
-        "babel-plugin-transform-object-rest-spread",
-        ["parser-opts", { "allowReturnOutsideFunction": true }]
+        "babel-plugin-transform-object-rest-spread"
     ]
 }
