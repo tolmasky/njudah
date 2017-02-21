@@ -1,5 +1,5 @@
 {
-  "name": "cursor",
+  "name": "@njudah/cursor",
   "version": "1.0.0",
   "description": "Cursor program with tree",
   "main": "cursor.js",

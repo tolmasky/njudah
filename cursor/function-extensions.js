@@ -61,7 +61,7 @@ Function.prototype.await = function (state, ...args)
     return wait(state, this, undefined, ...args);
 }
 
-Function.prototype.promisifed = function (state, ...args)
+Function.prototype.promisified = function (state, ...args)
 {
     const thisFunction = this;
 

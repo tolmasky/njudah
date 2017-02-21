@@ -1,5 +1,5 @@
 {
-  "name": "get-checksum",
+  "name": "@njudah/get-checksum",
   "version": "1.0.0",
   "description": "Generate SHA 256 checksum",
   "main": "get-checksum.js",

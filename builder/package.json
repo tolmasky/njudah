@@ -1,5 +1,5 @@
 {
-  "name": "builder",
+  "name": "@njudah/builder",
   "version": "1.0.0",
   "description": "Build tool",
   "main": "builder.js",
