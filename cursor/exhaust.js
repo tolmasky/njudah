@@ -17,7 +17,7 @@ const isList = I.List.isList;
 
 
 const Node = I.Record({ binding:null, children: null }, "Node");
-const Binding = I.Record({ function:null, attributes:null, children:null, value: null, isValue: false }, "Binding");
+const Binding = I.Record({ base:null, function:null, attributes:null, children:null, value: null, isValue: false }, "Binding");
 
 module.exports = function exhaust(aFunction, previous)
 {//console.log("EXHASTING " + aFunction);
@@ -166,7 +166,7 @@ Binding.is = function(lhs, rhs, p)
             every(lhs.children, rhs.children, Binding.is);
 }
 
-function every(lhs, rhs, equals)
+function every(lhs, rhs, equals, op)
 {
     const lhsKeys = ObjectKeys(lhs);
     const rhsKeys = ObjectKeys(rhs);

@@ -12,6 +12,7 @@ const { refine, deref, set, exists } = require("@njudah/cursor");
 
 const copy = require("./fs/copy");
 const mkdir = require("./fs/mkdir");
+const writeFile = require("./fs/write-file");
 
 const id = x => x;
 const toMatcher = require("./to-matcher");
@@ -26,16 +27,26 @@ function Build({ path: source, destination, state, children, ignore })
     const checksumValue = deref(checksum, false);
 
     const cachePath = path.join(destination, "cache");
-    const productPath = checksumValue && path.join(destination, checksumValue, path.extname(source));
+    const productPath = checksumValue && mkdir.p.await(refine(state, "product"), path.join(destination, checksumValue));
     const mergedIgnore = toMatcher.memoizedCall(refine(state, "ignore"), ignore, destination, "**/.*");
+    const metadata = refine(state, "metadata");
 
-    return <Item    source = { source }
-                    state = { refine(state, "item") }
-                    transforms = { children }
-                    checksum = { checksum }
-                    ignore = { mergedIgnore }
-                    cache = { mkdir.p.await(refine(state, "cache"), cachePath) }
-                    destination = { productPath && mkdir.p.await(refine(state, "product"), productPath) } />;
+    return  <id>
+                <Item   source = { source }
+                        state = { refine(state, "item") }
+                        transforms = { children }
+                        checksum = { checksum }
+                        ignore = { mergedIgnore }
+                        cache = { mkdir.p.await(refine(state, "cache"), cachePath) }
+                        metadata = { metadata }
+                        destination = { productPath && path.join(productPath, path.basename(source)) } />
+                {   deref(metadata, false) && checksumValue &&
+                    <writeFile.result
+                        state = { refine(state, "write") }
+                        destination = { path.join(productPath, path.basename(source) + ".metadata.json") }
+                        contents = { JSON.stringify(deref(metadata), null, 2) } />
+                }
+            </id>
 }
 
 
@@ -65,7 +76,7 @@ function Item({ source, state, ignore, checksum, ...rest })
                 </FileDescription>;
 */
 
-function File({ source, cache, checksum, transforms, state, destination })
+function File({ source, cache, checksum, transforms, state, destination, metadata })
 {
     if (!exists(state))
         set(state, I.Map());
@@ -82,6 +93,9 @@ function File({ source, cache, checksum, transforms, state, destination })
         { source, cache, checksum: checksumValue });
     const artifactPath = transform ? transformed && transformed.get("contentsPath") : source;
 
+    if (transformed)
+        set(metadata, I.Map({ [source]: transformed.get("metadata") }));
+
     return  transformed && destination &&
             <copy.result
                     metadata = { transformed.get("metadata") }
@@ -91,12 +105,21 @@ function File({ source, cache, checksum, transforms, state, destination })
                     
 }
 
-function Directory({ source, destination, cache, files, checksum, transforms, ignore, state })
+const EmptySet = I.Set();
+const EmptyMap = I.Map();
+
+const merge = EmptyMap.merge.bind(EmptyMap);
+
+function Directory({ source, destination, cache, files, checksum, transforms, ignore, state, metadata })
 {
     const hasChecksum = files.every(aPath => deref.in(state, aPath + "-checksum", false));
     const checksumValue = set(checksum, hasChecksum &&
         getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
     const completed = destination && mkdir.await(refine(state, "mkdir"), { destination });
+
+    if (files.every(aPath => deref.in(state, aPath + "-metadata", false)))
+        set(metadata, merge.memoizedCall(refine(state, "union"),
+            ...files.map(file => deref.in(state, file + "-metadata", EmptyMap))));
 
     return  <id path = { source } checksum = { checksumValue } >
             {
@@ -108,8 +131,8 @@ function Directory({ source, destination, cache, files, checksum, transforms, ig
                             transforms = { transforms } 
                             state = { refine(state, aPath) }
                             cache = { cache }
+                            metadata = { refine(state, aPath + "-metadata") }
                             destination = { completed && path.join(destination, path.basename(aPath)) } />)
             }
             </id>
 }
-

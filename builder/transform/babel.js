@@ -12,7 +12,7 @@ module.exports = function babel({ contents, options, metadataKeys })
         for (const key of metadataKeys)
             metadata[key] = result.metadata[key];
 
-        return { code:result.code, metadata };
+        return { contents:result.code, metadata };
     }
 
     return transform(contents, options).code;

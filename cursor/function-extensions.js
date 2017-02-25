@@ -26,18 +26,19 @@ Object.defineProperty(Function.prototype, "result",
     get: function ()
     {
         const thisFunction = this;
+        const result = function({ state, ...args })
+        {
+            const result = thisFunction.await(state, args);
+    
+            if (result)
+                return result;
+        
+            return "Loading...";
+        };
 
         return Object.defineProperty(this, "result",
         {
-            value: function({ state, ...args })
-            {
-                const result = thisFunction.await(state, args);
-        
-                if (result)
-                    return result;
-            
-                return "Loading...";
-            }
+            value: Object.defineProperty(result, "name", { value: thisFunction.name })
         }).result;
     }
 });

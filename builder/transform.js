@@ -19,8 +19,8 @@ const ArrayMap = Array.prototype.map;
 function transform({ source, cache, checksum, children:[aFunction] })
 {
     const extension = extname(source);
-    const contentsPath = join(cache, "contents", basename(source, extension) + "-" + checksum + extension);
-    const metadataPath = join(cache, "metadata", basename(source, extension) + "-" + checksum + extension);
+    const contentsPath = join(cache, basename(source, extension) + "-" + checksum + extension);
+    const metadataPath = join(cache, basename(source, extension) + "-" + checksum + extension + ".metadata.json");
 
     return Promise.all([lstat(contentsPath), readFile({ source: metadataPath }).then(JSON.parse)])
         .then(([_, metadata]) => ({ contentsPath, metadata }))
@@ -37,14 +37,15 @@ function transform({ source, cache, checksum, children:[aFunction] })
                 {
                     const contents = typeof transformed === "string" ? transformed : transformed.contents;
                     const metadata = typeof transformed === "string" ? { } : transformed.metadata;
-
+    
+    
                     return Promise.all([
                         writeFile({ destination: contentsPath, contents }),
                         writeFile({ destination: metadataPath, contents: JSON.stringify(metadata) })
                     ])
                         .then(() => ({ contentsPath, metadata }));
                 });
-        });
+        })
 }
 
 

@@ -2,7 +2,7 @@
 const { writeFile } = require("fs");
 
 
-module.exports = function  ({ contents, destination = "p", charset = "utf-8" })
+module.exports = function writeFile_({ contents, destination = "p", charset = "utf-8" })
 {
     return new Promise(function (resolve, reject)
     {
