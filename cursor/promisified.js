@@ -13,7 +13,10 @@ module.exports = function (aTree, aKeyPath)
                 if (typeof aKeyPath === "string")
                     return resolve(aState.getIn(aKeyPath));
             
-                return resolve(aKeyPath(aState));
+                if (typeof aKeyPath === "function")
+                    return resolve(aKeyPath(aState));
+            
+                return aState;
             }
         })({ a: 0 });
     });

@@ -2,7 +2,11 @@
 const Call = (Function.prototype.call).bind(Function.prototype.call);
 const Apply = (Function.prototype.call).bind(Function.prototype.apply);
 
-const { readFile, writeFile, lstat } = require("fs");
+const { join, basename, extname } = require("path");
+
+const readFile = require("./fs/read-file");
+const lstat = require("./fs/lstat");
+const writeFile = require("./fs/write-file");
 const { getArguments } = require("generic-jsx");
 
 const getChecksum = require("@njudah/get-checksum");
@@ -12,39 +16,35 @@ const isArray = Array.isArray;
 const ArrayMap = Array.prototype.map;
 
 
-function transform({ source, destination, children:[aFunction] })
+function transform({ source, cache, checksum, children:[aFunction] })
 {
-    return new Promise(function (resolve, reject)
-    {
-        lstat(destination, function (err)
+    const extension = extname(source);
+    const contentsPath = join(cache, "contents", basename(source, extension) + "-" + checksum + extension);
+    const metadataPath = join(cache, "metadata", basename(source, extension) + "-" + checksum + extension);
+
+    return Promise.all([lstat(contentsPath), readFile({ source: metadataPath }).then(JSON.parse)])
+        .then(([_, metadata]) => ({ contentsPath, metadata }))
+        .catch(function (e)
         {
-            if (!err)
-            {
-//                console.log("SKIPPING " + source);
-                return resolve(destination);
-            }
-            
-            console.log("TRANSFORMING " + source);
-            
-            readFile(source, "utf-8", function (err, contents)
-            {
-                if (err)
-                    return reject(err);
-    
-                Promise.resolve(aFunction({ contents }))
-                    .then(function (transformed)
-                    {
-                        return writeFile(destination, transformed, "utf-8", function (err)
-                        {
-                            if (err){console.log(err);
-                                return reject(err);}
-    
-                            resolve(destination);
-                        });
-                    });
-            });
+            return readFile({ source })
+                .then(function (contents)
+                {
+                    console.log("TRANSFORMING " + source);
+
+                    return aFunction({ contents })
+                })
+                .then(function (transformed)
+                {
+                    const contents = typeof transformed === "string" ? transformed : transformed.contents;
+                    const metadata = typeof transformed === "string" ? { } : transformed.metadata;
+
+                    return Promise.all([
+                        writeFile({ destination: contentsPath, contents }),
+                        writeFile({ destination: metadataPath, contents: JSON.stringify(metadata) })
+                    ])
+                        .then(() => ({ contentsPath, metadata }));
+                });
         });
-    });
 }
 
 

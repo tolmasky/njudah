@@ -10,6 +10,14 @@ module.exports = function (aBuild)
     });
 }
 
+module.exports.withState = function (aBuild)
+{
+    return promisified(toCurriedFunction(aBuild), function (aState)
+    {
+        return [aState.getIn(["attributes", "destination"]) + "/" + aState.getIn(["attributes", "state", "checksum"]), aState];
+    });
+}
+
 function toCurriedFunction(anArray)
 {
     if (typeof anArray === "function")

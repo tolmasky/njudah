@@ -10,8 +10,8 @@ const getFileDescription = require("./get-file-description");
 const { transform, find: findTransform } = require("./transform");
 const { refine, deref, set, exists } = require("@njudah/cursor");
 
-const copy = require("./copy");
-const mkdir = require("./mkdir");
+const copy = require("./fs/copy");
+const mkdir = require("./fs/mkdir");
 
 const id = x => x;
 const toMatcher = require("./to-matcher");
@@ -78,14 +78,17 @@ function File({ source, cache, checksum, transforms, state, destination })
     const { transform, checksum: transformChecksum } = findTransform(source, transforms) || { };
     const checksumValue = set(checksum, getChecksum(JSON.stringify({ transformChecksum, fileChecksum })));
 
-    const artifactPath = transform ? path.join(cache, checksumValue + path.extname(source)) : source;
-    const transformed = !transform || transform.await(refine(state, "transformed"), { source, destination: artifactPath });
+    const transformed = transform && transform.await(refine(state, "transformed"),
+        { source, cache, checksum: checksumValue });
+    const artifactPath = transform ? transformed && transformed.get("contentsPath") : source;
 
     return  transformed && destination &&
             <copy.result
-                state = { refine(state, "copy") }
-                source = { artifactPath }
-                destination = { destination } />;
+                    metadata = { transformed.get("metadata") }
+                    state = { refine(state, "copy") }
+                    source = { artifactPath }
+                    destination = { destination } />
+                    
 }
 
 function Directory({ source, destination, cache, files, checksum, transforms, ignore, state })
