@@ -3,12 +3,13 @@ const Call = (Function.prototype.call).bind(Function.prototype.call);
 const Apply = (Function.prototype.call).bind(Function.prototype.apply);
 
 const { readFile, writeFile, lstat } = require("fs");
-const { getArguments } = require("generic-jsx");
+const { base, getArguments } = require("generic-jsx");
 
 const getChecksum = require("@njudah/get-checksum");
 const toMatcher = require("./to-matcher");
 
 const isArray = Array.isArray;
+const isList = require("immutable").List.isList;
 const ArrayMap = Array.prototype.map;
 
 
@@ -62,9 +63,25 @@ function find (aPath, transforms)
             const { children:[child] } = getArguments(transform);
             const { children, ...attributes } = getArguments(child);
 
-            return { transform, checksum: getChecksum(JSON.stringify(attributes)) };
+            return { transform, checksum: attributes.checksum || getChecksum(JSON.stringify(attributes)) };
         }
     }
+}
+
+module.exports.optimize = function optimize(aTransform)
+{
+    if (isArray(aTransform) || isList(aTransform))
+        return aTransform.map(aTransform => optimize(aTransform));
+
+    const { children:[child] } = getArguments(aTransform);
+    const { optimize: optimization } = base(child);
+    
+    if (!optimization)
+        return aTransform;
+
+    return <aTransform>
+             { optimization(child) }
+            </aTransform>;
 }
 
 module.exports.find = find;

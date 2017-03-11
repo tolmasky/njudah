@@ -69,9 +69,9 @@ const SOURCE = dirname(__dirname);
 
 function prePublish({ path, destination, babelRegister })
 {
-    const args = ["node", path, "--source", SOURCE, "--destination", destination, babelRegister ? "" : "--no-register"];
+    const args = ["node", path, "--source", SOURCE, "--destination", destination, babelRegister ? "" : "--no-register", "--prof"];
     var string = "";
-console.log("time" + args.join(" "));
+console.log("time " + args.join(" "));
     return new Promise(function (resolve, reject)
     {
         const process = spawn_("time", args)

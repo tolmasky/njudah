@@ -19,7 +19,7 @@ const toMatcher = require("./to-matcher");
 module.exports = Build;
 module.exports.build = Build;
 module.exports.transform = transform;
-
+var total = 0 ;
 function Build({ path: source, destination, state, children, ignore })
 {
     const checksum = refine(state, "checksum");
@@ -29,9 +29,11 @@ function Build({ path: source, destination, state, children, ignore })
     const productPath = checksumValue && path.join(destination, checksumValue, path.extname(source));
     const mergedIgnore = toMatcher.memoizedCall(refine(state, "ignore"), ignore, destination, "**/.*");
 
+    const transforms = transform.optimize.memoizedCall(refine(state, "optimize"), children);
+
     return <Item    source = { source }
                     state = { refine(state, "item") }
-                    transforms = { children }
+                    transforms = { transforms }
                     checksum = { checksum }
                     ignore = { mergedIgnore }
                     cache = { mkdir.p.await(refine(state, "cache"), cachePath) }
