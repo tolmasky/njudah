@@ -28,7 +28,7 @@ module.exports = function (aState, update, pull)
             const updatedState = update(aState, anEvent);
             const responseState = registerAsynchronousRequests(updatedState, pushAsynchronousResponse, asynchronousCache);
 
-            if (I.is(aState, responseState))
+            if (aState === responseState)//I.is(aState, responseState))
                 return aState;
 
             return exhaust(responseState, { });

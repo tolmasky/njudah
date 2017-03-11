@@ -14,6 +14,7 @@ const { deref, Cursor, isCursor } = require("./cursor");
 
 const I = require("immutable");
 const isList = I.List.isList;
+const isIterable = I.Iterable.isIterable;
 
 
 const Node = I.Record({ binding:null, children: null }, "Node");
@@ -99,22 +100,53 @@ function serialize(attributes)
     return serialized;
 }
 
-
-Node.prototype.equals = function (aNode)
+function compare(lhs, rhs, depth)
 {
-    if (!(aNode instanceof Node))
+    if (is(lhs, rhs))
+        return true;
+
+    var lhsIsIterable = isIterable(lhs);
+    var rhsIsIterable = isIterable(rhs); 
+
+    if (lhsIsIterable !== rhsIsIterable || lhsIsIterable || rhsIsIterable)
         return false;
 
-    if (aNode.isValue !== this.isValue)
+    var lhsType = typeof lhs;
+    var rhsType = typeof rhs;
+
+    if (lhsType !== "object" || lhs === null || rhsType !== 'object' || rhs === null)
         return false;
 
-    if (aNode.isValue)
-        return I.is(this.value, aNode.value);
+    if (Object.getPrototypeOf(lhs) !== Object.getPrototypeOf(rhs))
+        return false;
 
-//    return false;
-//console.log(I.fromJS(aNode.attributes));
-    return I.is(I.fromJS(this.props), I.fromJS(aNode.props)) && I.is(I.List(this.children), I.List(aNode.children));
+    if ((lhs instanceof Date && rhs instanceof Date) ||
+        (lhs instanceof RegExp && rhs instanceof RegExp) ||
+        (lhs instanceof String && rhs instanceof String) ||
+        (lhs instanceof Number && rhs instanceof Number))
+        if (lhs.toString() !== rhs.toString())
+            return false;
+
+    var lhsKeys = Object.keys(lhs);
+    var rhsKeys = Object.keys(rhs);
+
+    if (lhsKeys.length !== rhsKeys.length)
+        return false;
+
+    var childCompare = depth > 1 ? compare : is;
+
+    // Test for A's keys different from B.
+    for (var i = 0; i < lhsKeys.length; i++)
+    {
+        var key = lhsKeys[i];
+
+        if (!hasOwnProperty.call(rhs, key) || !childCompare(lhs[key], rhs[key]))
+            return false;
+    }
+
+    return true;
 }
+
 
 Node.prototype.toString = function (depth = 0)
 {
@@ -204,46 +236,7 @@ function equalAttributes(lhs, rhs)
             return true;
     }
 
-    return object(lhs.value, rhs.value);
-}
-
-function object(lhs, rhs)
-{
-    if (is(lhs, rhs))
-        return true;
-
-    if (I.is(lhs, rhs))
-        return true;
-
-    var lhsType = typeof lhs;
-    var rhsType = typeof rhs;
-
-    if (lhsType !== "object" || lhs === null || rhsType !== 'object' || rhs === null)
-        return false;
-
-    if ((lhs instanceof Date && rhs instanceof Date) ||
-        (lhs instanceof RegExp && rhs instanceof RegExp) ||
-        (lhs instanceof String && rhs instanceof String) ||
-        (lhs instanceof Number && rhs instanceof Number))
-        if (lhs.toString() !== rhs.toString())
-            return false;
-
-    var lhsKeys = ObjectKeys(lhs);
-    var rhsKeys = ObjectKeys(rhs);
-
-    if (lhsKeys.length !== rhsKeys.length)
-        return false;
-
-    // Test for A's keys different from B.
-    for (var i = 0; i < lhsKeys.length; i++)
-    {
-        var key = lhsKeys[i];
-
-        if (!Call(hasOwnProperty, rhs, key) || !is(lhs[key], rhs[key]))
-            return false;
-    }
-
-    return true;
+    return compare(lhs.value, rhs.value, 2);
 }
 
 function ObjectIs(x, y)
