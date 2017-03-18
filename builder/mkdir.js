@@ -1,6 +1,6 @@
 
 
-const { lstat, mkdir } = require("fs");
+const { lstat, mkdir, mkdirSync } = require("fs");
 
 const mkdirp = require("mkdirp");
 
@@ -19,18 +19,9 @@ module.exports = function mkdirSafe({ destination })
 {
     return new Promise(function (resolve, reject)
     {
-        lstat(destination, function (err)
+        mkdir(destination, function (err)
         {
-            if (!err)
-                return resolve(true);
-
-            mkdir(destination, function (err)
-            {
-                if (err)
-                    return reject(err);
-                
-                resolve(true);
-            });
+            resolve(destination);
         });
     });
 }

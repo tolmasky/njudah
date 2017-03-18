@@ -2,7 +2,7 @@
 const Call = (Function.prototype.call).bind(Function.prototype.call);
 const Apply = (Function.prototype.call).bind(Function.prototype.apply);
 
-const { readFile, writeFile, lstat, readFileSync, writeFileSync } = require("fs");
+const { lstat, readFile, writeFile } = require("@njudah/fast-fs");
 const { base, getArguments } = require("generic-jsx");
 
 const getChecksum = require("@njudah/get-checksum");
@@ -13,43 +13,19 @@ const isList = require("immutable").List.isList;
 const ArrayMap = Array.prototype.map;
 
 
-function transform({ source, destination, children:[aFunction] })
+async function transform({ source, destination, children:[aFunction] })
 {
-    return new Promise(function (resolve, reject)
-    {
-        if (process.binding("fs").internalModuleStat(destination) >= 0)
-            return resolve(destination);
-console.log("READ " + source);
-        const contents = readFileSync(source, "utf-8") ;
-        return Promise.resolve(aFunction({ contents }))
-            .then(function (transformed)
-            {
-            console.log("WRITING TO " + destination);
-                try { writeFileSync(destination, transformed, "utf-8"); } catch(e) { console.log(e) }
-                console.log(destination);
-                resolve(destination);
-            });     
+    if (await lstat(destination) >= 0)
+        return destination;
 
-        console.log("TRANSFORMING " + source);
-        
-        readFile(source, "utf-8", function (err, contents)
-        {
-            if (err)
-                return reject(err);
+    const contents = await readFile(source, "utf-8");
+    const transformed = aFunction({ contents });
 
-            Promise.resolve(aFunction({ contents }))
-                .then(function (transformed)
-                {
-                    return writeFile(destination, transformed, "utf-8", function (err)
-                    {
-                        if (err){console.log(err);
-                            return reject(err);}
+    console.log("WRITING TO " + destination);
 
-                        resolve(destination);
-                    });
-                });
-        });
-    });
+    await writeFile(destination, transformed, "utf-8");
+
+    return destination;
 }
 
 
@@ -79,7 +55,7 @@ module.exports.optimize = async function optimize(aTransform)
 
     const { children:[child] } = getArguments(aTransform);
     const { optimize: optimization } = base(child);
-    
+
     if (!optimization)
         return aTransform;
 

@@ -20,12 +20,5 @@ module.exports = function (options)
     const babelRegister = options.babelRegister || false;
 
     if (babelRegister)
-        require("babel-register")(Object.create(babelSettings,
-        {
-            ignore:
-            {
-                value: "**/node_modules",
-                configurable: true
-            }
-        }));
+        require("babel-register")(babelSettings);
 }

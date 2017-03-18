@@ -1,5 +1,5 @@
 {
-    "presets":["es2015-node4", "stage-3"],
+    "presets":[["env", { "targets": { "node": "current" } }]],
     "plugins":
     [
         "generic-jsx/babel-plugin-transform-generic-jsx",

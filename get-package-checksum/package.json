@@ -1,0 +1,12 @@
+{
+  "name": "@njudah/get-package-checksum",
+  "version": "1.0.0",
+  "description": "Generate SHA 256 checksum",
+  "main": "get-package-checksum.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "Francisco Ryan Tolmasky I",
+  "license": "MIT"
+}

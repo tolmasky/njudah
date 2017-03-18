@@ -33,17 +33,25 @@ function getOptionsWithResolvedPluginsAndPresets({ plugins = [], presets = [], .
 
     return  {
                 ...rest,
-                plugins: plugins.map(aPlugin => resolvePlugin(aPlugin)),
-                presets: presets.map(aPreset => resolvePreset(aPreset))
+                plugins: plugins.map(aPlugin => resolve(resolvePlugin, aPlugin)),
+                presets: presets.map(aPreset => resolve(resolvePreset, aPreset))
             };
+}
+
+function resolve(resolver, aPlugin)
+{
+    if (Array.isArray(aPlugin))
+        return [resolver(aPlugin[0]), aPlugin[1]];
+    
+    return resolver(aPlugin);
 }
 
 async function getChecksummableOptions(options)
 {
     const { presets = [], plugins = [], ...rest } = options;
-    //const pathsToChecksums = await getPackageChecksum(Array.from(new Set(plugins.concat(presets))));
-    /*const { presets = [], plugins = [], ...rest } = options;*/
-    const pathsAndChecksums = Array.from(new Set(plugins.concat(presets)),
+    const getPath = aPlugin => !Array.isArray(aPlugin) ? aPlugin : aPlugin[0];
+
+    const pathsAndChecksums = Array.from(new Set(plugins.map(getPath).concat(presets.map(getPath))),
         async path => ({ [path]: await getPackageChecksum(path) }));
     const pathsToChecksums = (await Promise.all(pathsAndChecksums)).reduce(Object.assign, Object.create(null));
 

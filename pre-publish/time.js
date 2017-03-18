@@ -41,12 +41,14 @@ const SOURCE = dirname(__dirname);
     
         if (lstatSync(packagePath).isFile())
             return;
-
+//console.log(packagePath + " package.json");
         const installationPath = await install(
         {
             workspace: WORKSPACE_DEPENDENCIES,
             lockPath: join(packagePath, "package.json")
         });
+        
+        await spawn("rm", ["-rf", join(installationPath, "@njudah")]);
 
         await spawn("ln", ["-s", installationPath, join(packagePath, "node_modules")]);       
     }));
@@ -69,7 +71,7 @@ const SOURCE = dirname(__dirname);
 
 function prePublish({ path, destination, babelRegister })
 {
-    const args = ["node", path, "--source", SOURCE, "--destination", destination, babelRegister ? "" : "--no-register", "--prof"];
+    const args = ["node", path, "--source", SOURCE, "--destination", destination, babelRegister ? "" : "--no-register"];
     var string = "";
 console.log("time " + args.join(" "));
     return new Promise(function (resolve, reject)

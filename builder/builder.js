@@ -3,9 +3,10 @@ const path = require("path");
 
 const I = require("immutable");
 
+const { lstat, readdir } = require("@njudah/fast-fs");
+
 const getChecksum = require("@njudah/get-checksum");
 const getFileChecksum = require("./get-file-checksum");
-const getFileDescription = require("./get-file-description");
 
 const { transform, find: findTransform } = require("./transform");
 const { refine, deref, set, exists } = require("@njudah/cursor");
@@ -20,7 +21,7 @@ module.exports = Build;
 module.exports.build = Build;
 module.exports.transform = transform;
 var total = 0 ;
-function Build({ path: source, destination, state, children, ignore })
+function Build({ path: source, destination, state, children = [], ignore })
 {
     const checksum = refine(state, "checksum");
     const checksumValue = deref(checksum, false);
@@ -29,7 +30,7 @@ function Build({ path: source, destination, state, children, ignore })
     const productPath = checksumValue && path.join(destination, checksumValue, path.extname(source));
     const mergedIgnore = toMatcher.memoizedCall(refine(state, "ignore"), ignore, destination, "**/.*");
 
-    const transforms = transform.optimize.memoizedCall(refine(state, "optimize"), children);
+    const transforms = transform.optimize.await(refine(state, "optimize"), children);
 
     return <Item    source = { source }
                     state = { refine(state, "item") }
@@ -46,26 +47,20 @@ function Item({ source, state, ignore, checksum, ...rest })
     if (ignore(source))
         return set(checksum, "ignored");
 
-    const fileDescription = getFileDescription.await(refine(state, "file-description"), source);
+    const stat = lstat.await(refine(state, "file-description"), source);
 
-    if (!fileDescription)
+    if (typeof stat !== "number")
         return;
 
-    const attributes = { source, ignore, checksum, ...rest };
-    const Type = fileDescription.type === "file" ? File : Directory;
+    const Type = stat === 1 ? Directory : File;
 
     return <Type
-                { ...attributes }
-                files = { fileDescription.children }
+                source = { source }
+                ignore = { ignore }
+                checksum = { checksum }
+                { ...rest }
                 state = { refine(state, "type") } />;
 }
-
-/*
-    if (!fileDescription)
-        return  <FileDescription state = { refine(state, "file-description") } source = { source } >
-                    <Item source = { source } { ...rest } fileDescription = { from("result") } />
-                </FileDescription>;
-*/
 
 function File({ source, cache, checksum, transforms, state, destination })
 {
@@ -90,8 +85,13 @@ function File({ source, cache, checksum, transforms, state, destination })
                 destination = { destination } />;
 }
 
-function Directory({ source, destination, cache, files, checksum, transforms, ignore, state })
+function Directory({ source, destination, cache, checksum, transforms, ignore, state })
 {
+    const files = readdir.await(refine(state, "children"), source);
+
+    if (!files || !transforms)
+        return <id/>;
+
     const hasChecksum = files.every(aPath => deref.in(state, aPath + "-checksum", false));
     const checksumValue = set(checksum, hasChecksum &&
         getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
