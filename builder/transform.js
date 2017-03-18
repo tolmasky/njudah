@@ -2,7 +2,7 @@
 const Call = (Function.prototype.call).bind(Function.prototype.call);
 const Apply = (Function.prototype.call).bind(Function.prototype.apply);
 
-const { readFile, writeFile, lstat } = require("fs");
+const { readFile, writeFile, lstat, readFileSync, writeFileSync } = require("fs");
 const { base, getArguments } = require("generic-jsx");
 
 const getChecksum = require("@njudah/get-checksum");
@@ -17,33 +17,37 @@ function transform({ source, destination, children:[aFunction] })
 {
     return new Promise(function (resolve, reject)
     {
-        lstat(destination, function (err)
+        if (process.binding("fs").internalModuleStat(destination) >= 0)
+            return resolve(destination);
+console.log("READ " + source);
+        const contents = readFileSync(source, "utf-8") ;
+        return Promise.resolve(aFunction({ contents }))
+            .then(function (transformed)
+            {
+            console.log("WRITING TO " + destination);
+                try { writeFileSync(destination, transformed, "utf-8"); } catch(e) { console.log(e) }
+                console.log(destination);
+                resolve(destination);
+            });     
+
+        console.log("TRANSFORMING " + source);
+        
+        readFile(source, "utf-8", function (err, contents)
         {
-            if (!err)
-            {
-//                console.log("SKIPPING " + source);
-                return resolve(destination);
-            }
-            
-            console.log("TRANSFORMING " + source);
-            
-            readFile(source, "utf-8", function (err, contents)
-            {
-                if (err)
-                    return reject(err);
-    
-                Promise.resolve(aFunction({ contents }))
-                    .then(function (transformed)
+            if (err)
+                return reject(err);
+
+            Promise.resolve(aFunction({ contents }))
+                .then(function (transformed)
+                {
+                    return writeFile(destination, transformed, "utf-8", function (err)
                     {
-                        return writeFile(destination, transformed, "utf-8", function (err)
-                        {
-                            if (err){console.log(err);
-                                return reject(err);}
-    
-                            resolve(destination);
-                        });
+                        if (err){console.log(err);
+                            return reject(err);}
+
+                        resolve(destination);
                     });
-            });
+                });
         });
     });
 }
@@ -68,10 +72,10 @@ function find (aPath, transforms)
     }
 }
 
-module.exports.optimize = function optimize(aTransform)
+module.exports.optimize = async function optimize(aTransform)
 {
     if (isArray(aTransform) || isList(aTransform))
-        return aTransform.map(aTransform => optimize(aTransform));
+        return Promise.all(aTransform.map(aTransform => optimize(aTransform)));
 
     const { children:[child] } = getArguments(aTransform);
     const { optimize: optimization } = base(child);
@@ -80,7 +84,7 @@ module.exports.optimize = function optimize(aTransform)
         return aTransform;
 
     return <aTransform>
-             { optimization(child) }
+             { await optimization(child) }
             </aTransform>;
 }
 
