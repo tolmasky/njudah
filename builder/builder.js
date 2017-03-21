@@ -44,7 +44,7 @@ function Build({ path: source, destination, state, children = [], ignore })
 
 function Item({ source, state, ignore, checksum, ...rest })
 {
-    if (ignore(source))
+    if (deref(checksum, "") === "ignored" || ignore(source))
         return set(checksum, "ignored");
 
     const stat = lstat.await(refine(state, "file-description"), source);

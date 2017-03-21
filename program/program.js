@@ -1,5 +1,4 @@
 
-
 module.exports = function (aState, update, pull)
 {
     var state = aState;

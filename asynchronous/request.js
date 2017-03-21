@@ -41,7 +41,33 @@ const UUIDSymbol = Symbol("UUID");
 
 function getUUID(aFunction, aUUID, args)
 {
-    return getFunctionUUID(aFunction, aUUID) + "[" + JSON.stringify(args);
+    return getFunctionUUID(aFunction, aUUID) + argumentsUUID(args);
+}
+
+function argumentsUUID(args)
+{
+    if (args.length === 0)
+        return "";
+
+    if (args.length === 1)
+    {
+        const first = args[0];
+        const type = typeof first;
+        
+        if (type === "function")
+            return type + " " + getUUID(first, null, []);
+
+        if (type !== "object")
+            return type + " " + first;
+        
+        if (first === "null")
+            return "null";
+
+        return first[UUIDSymbol] || (first[UUIDSymbol] = "object " + JSON.stringify(first));
+    }
+    
+console.log("called...", args);
+    return JSON.stringify(args);
 }
 
 function getFunctionUUID(aFunction, aUUID)
