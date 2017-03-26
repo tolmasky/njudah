@@ -64,9 +64,6 @@ function Item({ source, state, ignore, checksum, ...rest })
 
 function File({ source, cache, checksum, transforms, state, destination })
 {
-    if (!exists(state))
-        set(state, I.Map());
-
     const fileChecksum = getFileChecksum.await(refine(state, "file-checksum"), source);
 
     if (!fileChecksum)
