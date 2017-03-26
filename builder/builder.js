@@ -3,15 +3,13 @@ const path = require("path");
 
 const I = require("immutable");
 
-const { lstat, readdir, mkdir } = require("@njudah/fast-fs");
+const { lstat, readdir, mkdir, copy } = require("@njudah/fast-fs");
 
 const getChecksum = require("@njudah/get-checksum");
 const getFileChecksum = require("./get-file-checksum");
 
 const { transform, find: findTransform } = require("./transform");
 const { refine, deref, set, exists } = require("@njudah/cursor");
-
-const copy = require("./copy");
 
 const id = x => x;
 const toMatcher = require("./to-matcher");

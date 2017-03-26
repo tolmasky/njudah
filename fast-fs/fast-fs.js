@@ -54,6 +54,18 @@ module.exports.writeFile = function writeFile(...args)
     });
 }
 
+module.exports.copy = function copy({ source, destination })
+{
+    return new Promise(function (resolve, reject)
+    {
+        fs.createReadStream(source)
+            .on("error", reject)
+            .pipe(fs.createWriteStream(destination)
+                .on("error", reject)
+                .on("close", () => resolve(true)));
+    })
+}
+
 module.exports.mkdir = function mkdir({ destination })
 {
     return new Promise(function (resolve, reject)
