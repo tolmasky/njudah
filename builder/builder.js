@@ -20,8 +20,8 @@ const toMatcher = require("./to-matcher");
 module.exports = Build;
 module.exports.build = Build;
 module.exports.transform = transform;
-var total = 0 ;
-function Build({ path: source, destination, state, children = [], ignore })
+
+function Build({ source, destination, state, children = [], ignore })
 {
     const checksum = refine(state, "checksum");
     const checksumValue = deref(checksum, false);
