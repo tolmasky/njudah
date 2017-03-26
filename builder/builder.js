@@ -1,8 +1,6 @@
 
 const path = require("path");
 
-const I = require("immutable");
-
 const { lstat, readdir, mkdir, copy } = require("@njudah/fast-fs");
 
 const getChecksum = require("@njudah/get-checksum");
