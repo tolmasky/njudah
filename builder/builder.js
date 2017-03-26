@@ -67,12 +67,9 @@ function File({ source, cache, checksum, transforms, state, destination })
 
     const artifactPath = transform ? path.join(cache, checksumValue + path.extname(source)) : source;
     const transformed = !transform || transform.await(refine(state, "transformed"), { source, destination: artifactPath });
+    const copied = transformed && destination && copy.await(refine(state, "copy"), { source: artifactPath, destination });
 
-    return  transformed && destination &&
-            <copy.result
-                state = { refine(state, "copy") }
-                source = { artifactPath }
-                destination = { destination } />;
+    return copied ? "copied" : "incomplete";
 }
 
 function Directory({ source, destination, cache, checksum, transforms, ignore, state })
