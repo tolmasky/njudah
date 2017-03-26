@@ -2,12 +2,12 @@
 const { join } = require("path");
 const { lstat: lstat_native } = require("bindings")("fast-fs");
 const fs = require("fs");
+const mkdirp_ = require("mkdirp");
 
 module.exports.lstat = function lstat(aPath)
 {
     return new Promise(function (resolve, reject)
     {
-        //resolve(process.binding("fs").internalModuleStat(aPath));
         lstat_native(aPath, resolve);
     });
 }
@@ -52,4 +52,36 @@ module.exports.writeFile = function writeFile(...args)
             resolve(result);
         });
     });
+}
+
+module.exports.mkdir = function mkdir({ destination })
+{
+    return new Promise(function (resolve, reject)
+    {
+        fs.mkdir(destination, function (err)
+        {
+            resolve(destination);
+        });
+    });
+}
+
+module.exports.mkdir.p = function mkdirp(destination)
+{
+    return new Promise(function (resolve, reject)
+    {
+        mkdirp_(destination, function (err, result)
+        {
+            if (err)
+                return reject(err);
+
+            resolve(destination);
+        });
+    });
+/*    return new Promise(function (resolve, reject)
+    {
+        spawn("mkdir", ["-p", destination])
+            .on("close", () => resolve(destination))
+            .on("error", error => reject(error));
+    });
+*/
 }

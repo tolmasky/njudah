@@ -3,7 +3,7 @@ const path = require("path");
 
 const I = require("immutable");
 
-const { lstat, readdir } = require("@njudah/fast-fs");
+const { lstat, readdir, mkdir } = require("@njudah/fast-fs");
 
 const getChecksum = require("@njudah/get-checksum");
 const getFileChecksum = require("./get-file-checksum");
@@ -12,7 +12,6 @@ const { transform, find: findTransform } = require("./transform");
 const { refine, deref, set, exists } = require("@njudah/cursor");
 
 const copy = require("./copy");
-const mkdir = require("./mkdir");
 
 const id = x => x;
 const toMatcher = require("./to-matcher");
@@ -28,15 +27,13 @@ function Build({ source, destination, state, children = [], ignore })
 
     const cachePath = path.join(destination, "cache");
     const productPath = checksumValue && path.join(destination, checksumValue, path.extname(source));
-    const mergedIgnore = toMatcher.memoizedCall(refine(state, "ignore"), ignore, destination, "**/.*");
-
-    const transforms = transform.optimize.await(refine(state, "optimize"), children);
+    const ignoreMatcher = toMatcher.memoizedCall(refine(state, "ignore"), ignore, destination, "**/.*");
 
     return <Item    source = { source }
                     state = { refine(state, "item") }
-                    transforms = { transforms }
+                    transforms = { transform.optimize.await(refine(state, "optimize"), children) }
                     checksum = { checksum }
-                    ignore = { mergedIgnore }
+                    ignore = { ignoreMatcher }
                     cache = { mkdir.p.await(refine(state, "cache"), cachePath) }
                     destination = { productPath && mkdir.p.await(refine(state, "product"), productPath) } />;
 }
@@ -47,7 +44,7 @@ function Item({ source, state, ignore, checksum, ...rest })
     if (deref(checksum, "") === "ignored" || ignore(source))
         return set(checksum, "ignored");
 
-    const stat = lstat.await(refine(state, "file-description"), source);
+    const stat = lstat.await(refine(state, "lstat"), source);
 
     if (typeof stat !== "number")
         return;
@@ -84,7 +81,7 @@ function File({ source, cache, checksum, transforms, state, destination })
 
 function Directory({ source, destination, cache, checksum, transforms, ignore, state })
 {
-    const files = readdir.await(refine(state, "children"), source);
+    const files = readdir.await(refine(state, "files"), source);
 
     if (!files || !transforms)
         return <id/>;
