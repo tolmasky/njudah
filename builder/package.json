@@ -10,13 +10,12 @@
   "author": "Francisco Ryan Tolmasky I",
   "license": "MIT",
   "dependencies": {
-    "babel-core": "^6.23.1",
-    "micromatch": "^2.3.11",
-    "mkdirp": "^0.5.1",
-    "immutable": "3.8.1",
-    "@njudah/program": "1.0.0",
     "@njudah/asynchronous": "1.0.0",
+    "@njudah/cursor": "1.0.0",
     "@njudah/get-checksum": "1.0.0",
-    "@njudah/cursor": "1.0.0"
+    "@njudah/program": "1.0.0",
+    "babel-core": "^6.23.1",
+    "immutable": "3.8.1",
+    "micromatch": "^2.3.11"
   }
 }
