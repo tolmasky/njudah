@@ -46,7 +46,7 @@ function exhaustBinding(aBinding, aPreviousResult)
 {
     const previousBinding = aPreviousResult && aPreviousResult.binding;
 
-    if (previousBinding && (previousBinding === aBinding || Binding.is(previousBinding, aBinding)))
+    if (previousBinding && (previousBinding === aBinding))// || Binding.is(previousBinding, aBinding)))
         return aPreviousResult;
 
     if (!aBinding.base)
@@ -70,23 +70,19 @@ function exhaustBinding(aBinding, aPreviousResult)
     return new Node(
     {
         binding: aBinding,
-        children: [].concat(...children.map(toArray)).map((aChild, anIndex) => exhaust(aChild, previousChildren && previousChildren[anIndex]))
-    });
-
-    const children2 = base(resultValue) !== stem ?
-        [exhaust(resultValue, previousChildren && previousChildren[0])] :
-        aBinding.children.map((aChild, anIndex) => exhaustBinding(aChild, previousChildren && previousChildren[anIndex]));
-
-    return new Node(
-    {
-        binding: aBinding,
-        children
+        children: flatten(children).map((aChild, anIndex) =>
+            exhaust(aChild, previousChildren && previousChildren[anIndex]))
     });
 }
 
 function isFunction(aValue)
 {
     return typeof aValue === "function";
+}
+
+function flatten(anArray)
+{
+    return Apply(ArrayConcat, [], anArray.map(toArray));
 }
 
 function toBinding(aValue, aPreviousBinding)
@@ -96,15 +92,50 @@ function toBinding(aValue, aPreviousBinding)
                 aPreviousBinding : new Binding({ value: aValue });
 
     const { children, ...attributes } = getArguments(aValue);
-    const flat = Apply(ArrayConcat, [], children.map(toArray));//Apply(ArrayConcat, [], Call(ArrayMap, children, toArray));
+    const flattened = flatten(children);
+
+    const serializedAttributes = serialize(attributes, aPreviousBinding && aPreviousBinding.attributes);
+    const bindingChildren = toBindingChildren(flattened, aPreviousBinding && aPreviousBinding.children);//flattened.map((aChild, anIndex) => toBinding(aChild, aPreviousBinding && aPreviousBinding.children[anIndex]));
+
+    if (aPreviousBinding && base(aValue) === aPreviousBinding.base &&
+        (serializedAttributes === aPreviousBinding.attributes) &&
+        bindingChildren === aPreviousBinding.children)
+        return aPreviousBinding;
 
     return new Binding(
     {
         base: base(aValue),
         function: aValue,
-        attributes: serialize(attributes),
-        children: flat.map(toBinding)//Call(ArrayMap, flat, toBinding)
+        attributes: serializedAttributes,
+        children: bindingChildren
     });
+}
+
+function toBindingChildren(anArray, previousChildren)
+{
+    const children = [];
+    var index = 0;
+    var different = false;
+    const count = anArray.length;
+
+    for (; index < count; ++index)
+    {
+        const binding = toBinding(anArray[index], previousChildren && previousChildren[index]);
+
+        children.push(binding);
+        different = different || binding !== (previousChildren && previousChildren[index]);
+    }
+
+    if (different)
+    {
+        
+        return children;
+    }
+    
+//    if (!every(children, previousChildren || [], Binding.is))
+//            console.log("_");
+    
+    return previousChildren || [];
 }
 
 function toArray(anArray)
@@ -118,29 +149,52 @@ function toArray(anArray)
     return anArray;
 }
 
-function serialize(attributes)
+
+
+function serialize(attributes, previousAttributes)
 {
     const keys = Object.keys(attributes);
     const serialized = Object.create(null);
     const EMPTY = { };
 
     var index = 0;
+    var different = false;
     const count = keys.length;
 
     for (; index < count; ++index)
-        serialized[keys[index]] = serialize(attributes[keys[index]]);
+    {
+        const key = keys[index];
+        const previousAttribute = previousAttributes && previousAttributes[key];
 
-    function serialize(anAttribute)
+        serialized[key] = serialize(attributes[key], previousAttribute);
+        different = different || serialized[key] !== previousAttribute;
+    }
+    
+    if (!different)
+        return previousAttributes;
+
+    function serialize(anAttribute, aPreviousSerialization)
     {
         if (!isCursor(anAttribute))
-            return { value: deref(anAttribute) };
+        {
+            if (aPreviousSerialization &&
+                !aPreviousSerialization.keyPath &&
+                is(anAttribute, aPreviousSerialization.value))
+                return aPreviousSerialization;
 
+            return { value: anAttribute };
+        }
+        
         const value = deref(anAttribute, EMPTY);
+        const empty = value === EMPTY;
 
-        if (value === EMPTY)
-            return { keyPath: anAttribute.keyPath };
+        if (aPreviousSerialization &&
+            aPreviousSerialization.keyPath &&
+            aPreviousSerialization.empty === empty &&
+            (empty || compare(value, aPreviousSerialization.value, 2)))
+            return aPreviousSerialization;
 
-        return { keyPath: anAttribute.keyPath, value: deref(anAttribute, EMPTY) };
+        return { keyPath: anAttribute.keyPath, value, empty };
     }
 
     return serialized;
@@ -248,7 +302,7 @@ Binding.is = function(lhs, rhs, p)
         return is(lhs.value, rhs.value);
 
     return  lhs.base === rhs.base &&
-            every(lhs.attributes, rhs.attributes, equalAttributes) &&
+            (lhs.attributes === rhs.attributes || every(lhs.attributes, rhs.attributes, equalAttributes)) &&
             every(lhs.children, rhs.children, Binding.is);
 }
 
@@ -280,8 +334,8 @@ function equalAttributes(lhs, rhs)
 
     if (lhsIsCursor)
     {
-        const lhsHasValue = Call(hasOwnProperty, lhs, "value");
-        const rhsHasValue = Call(hasOwnProperty, rhs, "value");
+        const lhsHasValue = !lhs.empty;
+        const rhsHasValue = !rhs.empty;
 
         if (lhsHasValue !== rhsHasValue)
             return false;
