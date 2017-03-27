@@ -7,7 +7,7 @@ const getChecksum = require("@njudah/get-checksum");
 const getFileChecksum = require("./get-file-checksum");
 
 const { transform, find: findTransform } = require("./transform");
-const { refine, deref, set, exists } = require("@njudah/cursor");
+const { refine, deref, set, exists, stem } = require("@njudah/cursor");
 
 const id = x => x;
 const toMatcher = require("./to-matcher");
@@ -77,14 +77,14 @@ function Directory({ source, destination, cache, checksum, transforms, ignore, s
     const files = readdir.await(refine(state, "files"), source);
 
     if (!files || !transforms)
-        return <id/>;
+        return <stem/>;
 
     const hasChecksum = files.every(aPath => deref.in(state, aPath + "-checksum", false));
     const checksumValue = set(checksum, hasChecksum &&
         getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
     const completed = destination && mkdir.await(refine(state, "mkdir"), { destination });
 
-    return  <id path = { source } checksum = { checksumValue } >
+    return  <stem path = { source } checksum = { checksumValue } >
             {
                 files.map(aPath =>
                         <Item
@@ -96,6 +96,6 @@ function Directory({ source, destination, cache, checksum, transforms, ignore, s
                             cache = { cache }
                             destination = { completed && path.join(destination, path.basename(aPath)) } />)
             }
-            </id>
+            </stem>
 }
 

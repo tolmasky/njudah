@@ -39,6 +39,8 @@ function Cursor(aParentCursorOrBaseObject, aKey)
 
 module.exports.Cursor = Cursor;
 
+module.exports.stem = x => x;
+
 function isCursor(aCursorOrObject)
 {
     return aCursorOrObject instanceof Cursor;

@@ -10,54 +10,100 @@ const ArrayFilter = Array.prototype.filter;
 const isArray = Array.isArray;
 const ArrayMap = Array.prototype.map;
 
-const { deref, Cursor, isCursor } = require("./cursor");
+const { deref, Cursor, isCursor, stem } = require("./cursor");
 
 const I = require("immutable");
 const isList = I.List.isList;
 const isIterable = I.Iterable.isIterable;
 
 
-const Node = I.Record({ binding:null, children: null }, "Node");
-const Binding = I.Record({ function:null, attributes:null, children:null, value: null, isValue: false }, "Binding");
+//const Node = I.Record({ binding:null, children: null }, "Node");
+//const Binding = I.Record({ function:null, attributes:null, children:null, value: null, isValue: false }, "Binding");
 
-module.exports = function exhaust(aFunction, previous)
-{//console.log("EXHASTING " + aFunction);
-    const binding = toBinding(aFunction);
+function Node({ binding = null, children = null })
+{
+    this.binding = binding;
+    this.children = children;
+}
 
-    if (binding.isValue)
-        return Node({ binding });
+function Binding({ base = null, function: aFunction = null, attributes = null, children = null, value = null })
+{
+    this.base = base;
+    this.function = aFunction;
+    this.attributes = attributes;
+    this.children = children;
+    this.value = value;
+}
 
+module.exports = exhaust;
 
-//console.log("COMPARING " + binding.function.name + " to " + !!previous + " " + (previous && previous.binding && previous.binding.function.name));
-    if (previous && Binding.is(binding, previous.binding, previous))
-        return previous;
+function exhaust(aFunction, aPreviousResult)
+{
+    return exhaustBinding(toBinding(aFunction, aPreviousResult && aPreviousResult.binding), aPreviousResult); 
+}
 
-    const nextFunction = aFunction();
-    const children = typeof nextFunction === "function" ? [{ function:nextFunction }] : binding.children;
-//console.log("using " + (typeof nextFunction === "function" ? [{ function:nextFunction }] : binding.children));
+function exhaustBinding(aBinding, aPreviousResult)
+{
+    const previousBinding = aPreviousResult && aPreviousResult.binding;
 
-    return Node(
+    if (previousBinding && (previousBinding === aBinding || Binding.is(previousBinding, aBinding)))
+        return aPreviousResult;
+
+    if (!aBinding.base)
+        return new Node({ binding: aBinding });
+
+    const resultValue = aBinding.function();
+    const previousChildren = aPreviousResult && aPreviousResult.children;
+
+    if (!isFunction(resultValue))
+        return new Node({ binding: aBinding });
+
+    if (base(resultValue) !== stem)
+        return new Node(
+        {
+            binding: aBinding,
+            children: [exhaust(resultValue, previousChildren && previousChildren[0])]
+        });
+
+    const { children = [] } = getArguments(resultValue);
+
+    return new Node(
     {
-        binding: binding,
-        children: Call(ArrayMap, children, (aChild, anIndex) => exhaust(aChild.isValue ? aChild.value : aChild.function, previous && previous.children && previous.children[anIndex]))
+        binding: aBinding,
+        children: [].concat(...children.map(toArray)).map((aChild, anIndex) => exhaust(aChild, previousChildren && previousChildren[anIndex]))
+    });
+
+    const children2 = base(resultValue) !== stem ?
+        [exhaust(resultValue, previousChildren && previousChildren[0])] :
+        aBinding.children.map((aChild, anIndex) => exhaustBinding(aChild, previousChildren && previousChildren[anIndex]));
+
+    return new Node(
+    {
+        binding: aBinding,
+        children
     });
 }
 
-
-function toBinding(aFunction)
+function isFunction(aValue)
 {
-    if (typeof aFunction !== "function")
-        return Binding({ value: aFunction, isValue: true });
+    return typeof aValue === "function";
+}
 
-    const { children, ...attributes } = getArguments(aFunction);
-    const flat = Apply(ArrayConcat, [], Call(ArrayMap, children, toArray));
+function toBinding(aValue, aPreviousBinding)
+{
+    if (typeof aValue !== "function")
+        return  aPreviousBinding && !aPreviousBinding.base && is(aValue, aPreviousBinding.value) ?
+                aPreviousBinding : new Binding({ value: aValue });
 
-    return Binding(
+    const { children, ...attributes } = getArguments(aValue);
+    const flat = Apply(ArrayConcat, [], children.map(toArray));//Apply(ArrayConcat, [], Call(ArrayMap, children, toArray));
+
+    return new Binding(
     {
-        base: base(aFunction),
-        function: aFunction,
+        base: base(aValue),
+        function: aValue,
         attributes: serialize(attributes),
-        children: Call(ArrayMap, flat, toBinding)
+        children: flat.map(toBinding)//Call(ArrayMap, flat, toBinding)
     });
 }
 
@@ -156,7 +202,7 @@ Node.prototype.toString = function (depth = 0)
     for (;index < depth; ++index)
         padding += "    ";
 
-    if (this.binding.isValue)
+    if (!this.binding.base)
         return padding + this.binding.value;
 
     const binding = this.binding;
@@ -184,14 +230,22 @@ function toJSON(anObject)
     }
 }
 
+Binding.is_ = function (previous, aFunction)
+{
+    
+}
+
 
 Binding.is = function(lhs, rhs, p)
 {
-    if (lhs.isValue !== rhs.isValue)
+    const lhsIsValue = !lhs.base;
+    const rhsIsValue = !rhs.base;
+
+    if (lhsIsValue !== rhsIsValue)
         return false;
 
-    if (lhs.isValue)
-        return lhs.value === rhs.value;
+    if (lhsIsValue)
+        return is(lhs.value, rhs.value);
 
     return  lhs.base === rhs.base &&
             every(lhs.attributes, rhs.attributes, equalAttributes) &&
