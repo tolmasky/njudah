@@ -1,25 +1,38 @@
 
 
 const { refine, deref, set } = require("./cursor");
-const { getUUID, fromAsyncFunction } = require("@njudah/asynchronous/request");
+const { getFunctionCallUUID, fromAsyncFunction } = require("@njudah/asynchronous/request");
+const time = require("./time");
+const Cursor = require("./cursor");
+const compare = require("./exhaust").compare;
 
-var Cursor = require("./cursor");
-var I = require("immutable");
-
-module.exports = 0;
-
-
-function wait(aState, aFunction, aUUID, ...args)
+Function.prototype.await = function (state, ...args)
 {
-    const UUID = getUUID(aFunction, aUUID, args);
+    const UUID = getFunctionCallUUID(this, undefined, args);
 
-    if (deref.in(aState, ["function", "UUID"], { }) === UUID)
-        return deref.in(aState, ["response", "value"]);
+    if (deref.in(state, ["function", "UUID"], { }) === UUID)
+        return deref.in(state, ["response", "value"]);
 
-    set(aState, fromAsyncFunction(aFunction, aUUID)(...args));
+    set(state, fromAsyncFunction(this)(...args));
 
-    return null;    
+    return null;
 }
+
+Function.prototype.memoizedCall = time(function (aCursor, ...args)
+{
+    const previousResult = refine(aCursor, "previousResult");
+    const previousArguments = refine(aCursor, "previousArguments");
+    const currentArguments = args;//I.fromJS(args);
+    //console.log(args, previousArguments);
+    if (compare(args, deref(previousArguments, undefined), 2))
+    //if (I.is(currentArguments, deref(previousArguments, undefined)))
+        return deref(previousResult);
+
+    set(previousArguments, currentArguments);
+
+    return set(previousResult, this.apply(this, args));
+})
+
 
 Object.defineProperty(Function.prototype, "result",
 {
@@ -41,25 +54,6 @@ Object.defineProperty(Function.prototype, "result",
         }).result;
     }
 });
-
-Function.prototype.memoizedCall = function (aCursor, ...args)
-{
-    const previousResult = refine(aCursor, "previousResult");
-    const previousArguments = refine(aCursor, "previousArguments");
-    const currentArguments = I.fromJS(args);
-    
-    if (I.is(currentArguments, deref(previousArguments, undefined)))
-        return deref(previousResult);
-
-    set(previousArguments, currentArguments);
-
-    return set(previousResult, this.apply(this, args));
-}
-
-Function.prototype.await = function (state, ...args)
-{
-    return wait(state, this, undefined, ...args);
-}
 
 Function.prototype.promisified = function (state, ...args)
 {

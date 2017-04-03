@@ -53,7 +53,7 @@ function registerAsynchronousRequests(aState, pushAsynchronousResponse, asynchro
             asynchronousCache[aUUID] = 
             {
                 cancel: anAsynchronousFunction.function(
-                    aResult => pushAsynchronousResponse(aUUID, AsynchronousResponse({ value: I.fromJS(aResult) })),
+                    aResult => pushAsynchronousResponse(aUUID, AsynchronousResponse({ value: aResult })),
                     aResult => pushAsynchronousResponse(aUUID, AsynchronousResponse({ isError: true, value: aResult })))
             };
 
@@ -71,7 +71,7 @@ function registerAsynchronousRequests(aState, pushAsynchronousResponse, asynchro
 
 function getPushAsynchronousResponse(push, shouldCoallesce)
 {
-    let responses = null;
+    var responses = null;
 
     return function (aUUID, aResponse)
     {        

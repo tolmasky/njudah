@@ -15,21 +15,25 @@ const AsynchronousResponse = I.Record({ isError: false, value: null }, "Asynchro
 
 module.exports = AsynchronousRequest;
 
-function toAsynchronousFunction(aFunction, aUUID, args)
-{
-    return AsynchronousFunction({ UUID: getUUID(aFunction, aUUID, args), function: aFunction });
-}
-
 function fromPushFunction(aFunction, aUUID)
 {
     return function()
     {
+        const count = arguments.length;
+
+        var index = 0;
+        const passed = [];
+
+        for (; index < count; ++index)
+            passed[index] = arguments[index];
+
         return new AsynchronousRequest(
         {
-            function: toAsynchronousFunction( (push, reject)=>
+            function: new AsynchronousFunction(
             {
-                return aFunction(...arguments, push, reject);
-            }, getFunctionUUID(aFunction, aUUID), Call(ArraySlice, arguments))
+                UUID: getFunctionCallUUID(aFunction, aUUID, passed),
+                function: (push, reject) => aFunction.apply(this, passed.concat(push, reject))
+            })
         });
     }
 }
@@ -39,12 +43,14 @@ module.exports.fromPushFunction = fromPushFunction;
 const NativeRegExp = /^function [$A-Z_a-z][0-9A-Z_a-z$]*\(\) { \[native code\] }$/;
 const UUIDSymbol = Symbol("UUID");
 
-function getUUID(aFunction, aUUID, args)
+function getFunctionCallUUID(aFunction, aFunctionUUID, args)
 {
-    return getFunctionUUID(aFunction, aUUID) + argumentsUUID(args);
+    return getFunctionUUID(aFunction, aFunctionUUID) + getArgumentsUUID(args);
 }
 
-function argumentsUUID(args)
+module.exports.getFunctionCallUUID = getFunctionCallUUID;
+
+function getArgumentsUUID(args)
 {
     if (args.length === 0)
         return "";
@@ -55,12 +61,12 @@ function argumentsUUID(args)
         const type = typeof first;
         
         if (type === "function")
-            return type + " " + getUUID(first, null, []);
+            return type + " " + getFunctionCallUUID(first, null, []);
 
         if (type !== "object")
             return type + " " + first;
         
-        if (first === "null")
+        if (first === null)
             return "null";
 
         return first[UUIDSymbol] || (first[UUIDSymbol] = "object " + JSON.stringify(first));
@@ -72,36 +78,42 @@ console.log("called...", args);
 
 function getFunctionUUID(aFunction, aUUID)
 {
-    if (aUUID)
-        return aUUID;
+    return aUUID || getBaseFunctionUUID(aFunction);
+}
 
-    if (typeof aFunction[UUIDSymbol] === "string")
-        return aFunction[UUIDSymbol];
-//    if (Call(hasOwnProperty, aFunction, UUIDSymbol))
-//        return aFunction[UUIDSymbol];
+function getBaseFunctionUUID(aFunction)
+{
+    const baseFunction = base(aFunction);
+    const baseUUID = aFunction[UUIDSymbol];
 
-    const source = base(aFunction) + "";
+    if (typeof baseUUID === "string")
+        return baseUUID;
+
+    const source = baseFunction + "";
 
     if (NativeRegExp.test(source))
         throw new Error("Can't auto-generate UUID.");
 
-    return aFunction[UUIDSymbol] = getChecksum(source);
+    return baseFunction[UUIDSymbol] = baseFunction.name + " " + getChecksum(source);
 }
 
-module.exports.getUUID = getUUID;
-
-function fromAsyncFunction(aFunction, aUUID)
+function fromAsyncFunction(aFunction, aUUID, another)
 {
-    return fromPushFunction(async function ()
+    return fromPushFunction(function ()
     {
-        try
-        {
-            arguments[arguments.length - 2](await aFunction.apply(this, ArraySlice.call(arguments, 0, arguments.length - 2)));
-        }
-        catch (anException)
-        {console.log("||"+anException);
-            arguments[arguments.length - 1](anException);
-        }
+        const count = arguments.length;
+        const push = arguments[count - 2];
+        const reject = arguments[count - 1];
+        
+        var index = 0;
+        const passed = [];
+        
+        for (; index < count - 2; ++index)
+            passed[index] = arguments[index];
+
+        aFunction.apply(this, passed)
+            .then(push)
+            .catch(reject)
     }, getFunctionUUID(aFunction, aUUID));
 }
 

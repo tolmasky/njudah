@@ -4,7 +4,7 @@ const Apply = (Function.prototype.call).bind(Function.prototype.apply);
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 const is = Object.is || ObjectIs;
 const ObjectKeys = Object.keys;
-const ArrayConcat = Array.prototype.concat;
+
 const { base, getArguments } = require("generic-jsx");
 const ArrayFilter = Array.prototype.filter;
 const isArray = Array.isArray;
@@ -16,9 +16,7 @@ const I = require("immutable");
 const isList = I.List.isList;
 const isIterable = I.Iterable.isIterable;
 
-
-//const Node = I.Record({ binding:null, children: null }, "Node");
-//const Binding = I.Record({ function:null, attributes:null, children:null, value: null, isValue: false }, "Binding");
+const time = require("./time");
 
 function Node({ binding = null, children = null })
 {
@@ -35,33 +33,24 @@ function Binding({ base = null, function: aFunction = null, attributes = null, c
     this.value = value;
 }
 
-module.exports = exhaust;
-
 function exhaust(aFunction, aPreviousResult)
 {
-    return exhaustBinding(toBinding(aFunction, aPreviousResult && aPreviousResult.binding), aPreviousResult); 
-}
-
-function exhaustBinding(aBinding, aPreviousResult)
-{
     const previousBinding = aPreviousResult && aPreviousResult.binding;
+    const binding = toBinding(aFunction, previousBinding);
 
-    if (previousBinding && (previousBinding === aBinding))// || Binding.is(previousBinding, aBinding)))
+    if (previousBinding && (previousBinding === binding))// || Binding.is(previousBinding, aBinding)))
         return aPreviousResult;
 
-    if (!aBinding.base)
-        return new Node({ binding: aBinding });
+    if (!binding.base)
+        return new Node({ binding });
 
-    const resultValue = aBinding.function();
+    const resultValue = binding.function();
     const previousChildren = aPreviousResult && aPreviousResult.children;
 
-    if (!isFunction(resultValue))
-        return new Node({ binding: aBinding });
-
-    if (base(resultValue) !== stem)
+    if (!isFunction(resultValue) || base(resultValue) !== stem)
         return new Node(
         {
-            binding: aBinding,
+            binding,
             children: [exhaust(resultValue, previousChildren && previousChildren[0])]
         });
 
@@ -69,20 +58,47 @@ function exhaustBinding(aBinding, aPreviousResult)
 
     return new Node(
     {
-        binding: aBinding,
+        binding,
         children: flatten(children).map((aChild, anIndex) =>
             exhaust(aChild, previousChildren && previousChildren[anIndex]))
     });
 }
+
+module.exports = exhaust;
 
 function isFunction(aValue)
 {
     return typeof aValue === "function";
 }
 
-function flatten(anArray)
+const FlattenedSymbol = Symbol("flattened");
+const flatten = function flatten(from, into = [], recurse = true)
 {
-    return Apply(ArrayConcat, [], anArray.map(toArray));
+    if (from.length === 0)
+        return from;
+    
+    if (recurse && from[FlattenedSymbol])
+        return from[FlattenedSymbol];
+
+    var index = 0;
+    const asList = isList(from);
+    const count = !asList ? from.length : from.size;
+
+    for (; index < count; ++index)
+    {
+        const item = asList ? from.get(index) : from[index];
+
+        if (recurse && (isArray(item) || isList(item)))
+            flatten(item, into, false);
+
+        else
+            into[into.length] = item;
+    }
+
+    if (recurse)
+        from[FlattenedSymbol] = into;
+
+    return into;
 }
 
 function toBinding(aValue, aPreviousBinding)
@@ -91,8 +107,8 @@ function toBinding(aValue, aPreviousBinding)
         return  aPreviousBinding && !aPreviousBinding.base && is(aValue, aPreviousBinding.value) ?
                 aPreviousBinding : new Binding({ value: aValue });
 
-    const { children, ...attributes } = getArguments(aValue);
-    const flattened = flatten(children);
+    const attributes = getArguments(aValue);
+    const flattened = flatten(attributes.children);
 
     const serializedAttributes = serialize(attributes, aPreviousBinding && aPreviousBinding.attributes);
     const bindingChildren = toBindingChildren(flattened, aPreviousBinding && aPreviousBinding.children);//flattened.map((aChild, anIndex) => toBinding(aChild, aPreviousBinding && aPreviousBinding.children[anIndex]));
@@ -182,7 +198,7 @@ function serialize(attributes, previousAttributes)
                 is(anAttribute, aPreviousSerialization.value))
                 return aPreviousSerialization;
 
-            return { value: anAttribute };
+            return new Attribute(null, anAttribute);
         }
         
         const value = deref(anAttribute, EMPTY);
@@ -194,10 +210,17 @@ function serialize(attributes, previousAttributes)
             (empty || compare(value, aPreviousSerialization.value, 2)))
             return aPreviousSerialization;
 
-        return { keyPath: anAttribute.keyPath, value, empty };
+        return new Attribute(anAttribute.keyPath, value, empty);
     }
 
     return serialized;
+}
+
+function Attribute(aKeyPath, aValue, isEmpty)
+{
+    this.keyPath = aKeyPath;
+    this.value = aValue;
+    this.empty = isEmpty;
 }
 
 function compare(lhs, rhs, depth)
@@ -247,7 +270,7 @@ function compare(lhs, rhs, depth)
     return true;
 }
 
-
+module.exports.compare = compare;
 Node.prototype.toString = function (depth = 0)
 {
     var index = 0;
@@ -282,69 +305,6 @@ function toJSON(anObject)
     {console.log("CANT FIGURE OUT " + Object.keys(anObject));
         return "what";
     }
-}
-
-Binding.is_ = function (previous, aFunction)
-{
-    
-}
-
-
-Binding.is = function(lhs, rhs, p)
-{
-    const lhsIsValue = !lhs.base;
-    const rhsIsValue = !rhs.base;
-
-    if (lhsIsValue !== rhsIsValue)
-        return false;
-
-    if (lhsIsValue)
-        return is(lhs.value, rhs.value);
-
-    return  lhs.base === rhs.base &&
-            (lhs.attributes === rhs.attributes || every(lhs.attributes, rhs.attributes, equalAttributes)) &&
-            every(lhs.children, rhs.children, Binding.is);
-}
-
-function every(lhs, rhs, equals)
-{
-    const lhsKeys = ObjectKeys(lhs);
-    const rhsKeys = ObjectKeys(rhs);
-
-    if (lhsKeys.length !== rhsKeys.length)
-        return false;
-
-    var index = 0;
-    const count = rhsKeys.length;
-
-    for (; index < count; ++index)
-        if (!equals(lhs[lhsKeys[index]], rhs[lhsKeys[index]]))
-            return false;
-
-    return true;
-}
-
-function equalAttributes(lhs, rhs)
-{
-    const lhsIsCursor = Call(hasOwnProperty, lhs, "keyPath");
-    const rhsIsCursor = Call(hasOwnProperty, rhs, "keyPath");
-
-    if (lhsIsCursor !== rhsIsCursor)
-        return false;
-
-    if (lhsIsCursor)
-    {
-        const lhsHasValue = !lhs.empty;
-        const rhsHasValue = !rhs.empty;
-
-        if (lhsHasValue !== rhsHasValue)
-            return false;
-
-        if (!lhsHasValue)
-            return true;
-    }
-
-    return compare(lhs.value, rhs.value, 2);
 }
 
 function ObjectIs(x, y)

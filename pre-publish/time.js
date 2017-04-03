@@ -39,6 +39,9 @@ const SOURCE = dirname(__dirname);
     {
         const packagePath = join(njudahPath, aPackageName);
     
+        if (aPackageName === "fast-fs") {console.log(aPackageName);
+            return await spawn ("yarn", ["install"], { cwd: packagePath });
+}
         if (lstatSync(packagePath).isFile())
             return;
 //console.log(packagePath + " package.json");

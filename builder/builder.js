@@ -11,6 +11,7 @@ const { refine, deref, set, exists, stem } = require("@njudah/cursor");
 
 const id = x => x;
 const toMatcher = require("./to-matcher");
+var time = require("@njudah/cursor/time");
 
 module.exports = Build;
 module.exports.build = Build;
@@ -34,11 +35,12 @@ function Build({ source, destination, state, children = [], ignore })
                     destination = { productPath && mkdir.p.await(refine(state, "product"), productPath) } />;
 }
 
-
 function Item({ source, state, ignore, checksum, ...rest })
 {
-    if (deref(checksum, "") === "ignored" || ignore(source))
-        return set(checksum, "ignored");
+    const ignored = refine(state, "ignored");
+
+    if (exists(ignored) ? deref(ignored) : set(ignored, ignore(source)))
+         return set(checksum, "ignored");
 
     const stat = lstat.await(refine(state, "lstat"), source);
 
@@ -65,7 +67,9 @@ function File({ source, cache, checksum, transforms, state, destination })
     const { transform, checksum: transformChecksum } = findTransform(source, transforms) || { };
     const checksumValue = set(checksum, getChecksum(JSON.stringify({ transformChecksum, fileChecksum })));
 
-    const artifactPath = transform ? path.join(cache, checksumValue + path.extname(source)) : source;
+    set(checksum, checksumValue);
+
+    const artifactPath = transform ? path.join(cache, set(checksum, checksumValue) + path.extname(source)) : source;
     const transformed = !transform || transform.await(refine(state, "transformed"), { source, destination: artifactPath });
     const copied = transformed && destination && copy.await(refine(state, "copy"), { source: artifactPath, destination });
 
@@ -79,23 +83,24 @@ function Directory({ source, destination, cache, checksum, transforms, ignore, s
     if (!files || !transforms)
         return <stem/>;
 
-    const hasChecksum = files.every(aPath => deref.in(state, aPath + "-checksum", false));
-    const checksumValue = set(checksum, hasChecksum &&
-        getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
+    const checksumValue = deref(checksum, false) === false && 
+        files.every(aPath => deref.in(state, aPath + "-checksum", false)) &&
+        set(checksum, getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
+
     const completed = destination && mkdir.await(refine(state, "mkdir"), { destination });
 
     return  <stem path = { source } checksum = { checksumValue } >
             {
                 files.map(aPath =>
-                        <Item
-                            source = { aPath }
-                            ignore = { ignore }
-                            checksum = { refine(state, aPath + "-checksum") }
-                            transforms = { transforms } 
-                            state = { refine(state, aPath) }
-                            cache = { cache }
-                            destination = { completed && path.join(destination, path.basename(aPath)) } />)
+                    <Item
+                        source = { aPath }
+                        ignore = { ignore }
+                        checksum = { refine(state, aPath + "-checksum") }
+                        transforms = { transforms } 
+                        state = { refine(state, aPath) }
+                        cache = { cache }
+                        destination = { completed && path.join(destination, path.basename(aPath)) } />)
             }
-            </stem>
+            </stem>;
 }
 
