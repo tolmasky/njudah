@@ -18,7 +18,7 @@ Function.prototype.await = function (state, ...args)
     return null;
 }
 
-Function.prototype.memoizedCall = time(function (aCursor, ...args)
+Function.prototype.memoizedCall = function (aCursor, ...args)
 {
     const previousResult = refine(aCursor, "previousResult");
     const previousArguments = refine(aCursor, "previousArguments");
@@ -31,7 +31,7 @@ Function.prototype.memoizedCall = time(function (aCursor, ...args)
     set(previousArguments, currentArguments);
 
     return set(previousResult, this.apply(this, args));
-})
+}
 
 
 Object.defineProperty(Function.prototype, "result",
