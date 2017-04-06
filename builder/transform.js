@@ -21,7 +21,7 @@ async function transform({ source, destination, children:[aFunction] })
     const contents = await readFile(source, "utf-8");
     const transformed = aFunction({ contents });
 
-    console.log("WRITING TO " + destination);
+    console.log("TRANSFORMING TO " + source);
 
     await writeFile(destination, transformed, "utf-8");
 

@@ -1,6 +1,6 @@
 {
   "name": "@njudah/get-package-checksum",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Generate SHA 256 checksum",
   "main": "get-package-checksum.js",
   "scripts": {

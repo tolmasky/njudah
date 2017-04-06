@@ -1,6 +1,6 @@
 {
   "name": "@njudah/program",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Basic program",
   "main": "program.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "keywords": [],
   "author": "Francisco Ryan Tolmasky I",
-  "license": "ISC",
+  "license": "MIT",
   "peerDependencies": {
     "immutable": "3.8.1"
   }
