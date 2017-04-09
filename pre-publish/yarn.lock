@@ -636,9 +636,9 @@ esutils@^2.0.0, esutils@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/esutils/-/esutils-2.0.2.tgz#0abf4f1caa5bcb1f7a9d8acc6dea4faaa04bac9b"
 
-generic-jsx@^12.0.0:
-  version "12.0.0"
-  resolved "https://registry.yarnpkg.com/generic-jsx/-/generic-jsx-12.0.0.tgz#e2bcd86f11bb2abacabdfec450a84ad94d2084b4"
+generic-jsx@^13.0.0:
+  version "13.0.0"
+  resolved "https://registry.yarnpkg.com/generic-jsx/-/generic-jsx-13.0.0.tgz#caa0557cf309f3ec5c4565f42c82673e246770a3"
   dependencies:
     babel-helper-builder-react-jsx "^6.9.0"
     babel-plugin-syntax-jsx "^6.13.0"

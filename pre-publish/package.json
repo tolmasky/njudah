@@ -12,7 +12,7 @@
     "babel-plugin-transform-object-rest-spread": "^6.23.0",
     "babel-preset-env": "^1.2.2",
     "babel-register": "^6.23.0",
-    "generic-jsx": "^12.0.0",
+    "generic-jsx": "^13.0.0",
     "immutable": "^3.8.1",
     "uuid": "^3.0.1"
   }
