@@ -12,6 +12,7 @@
   "dependencies": {
   },
   "peerDependencies": {
+    "generic-jsx": "13.0.0",
     "immutable": "3.8.1",
     "@njudah/get-checksum": "2.0.0",
     "@njudah/program": "2.0.0"

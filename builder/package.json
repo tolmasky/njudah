@@ -17,5 +17,8 @@
     "babel-core": "^6.23.1",
     "immutable": "3.8.1",
     "micromatch": "^2.3.11"
+  },
+  "peerDependencies": {
+    "generic-jsx": "13.0.0"
   }
 }

@@ -1,6 +1,6 @@
 
 const { basename, dirname, join } = require("path");
-const { readdirSync, lstatSync } = require("fs");
+const { readdirSync, lstatSync, readFileSync, writeFileSync } = require("fs");
 
 const spawn = require("./spawn");
 const { spawn: spawn_ } = require("child_process");
@@ -44,18 +44,28 @@ const SOURCE = dirname(__dirname);
 }
         if (lstatSync(packagePath).isFile())
             return;
-//console.log(packagePath + " package.json");
+        
+        const packageJSONPath = join(packagePath, "package.json");
+        const packageJSON = JSON.parse(readFileSync(packageJSONPath, "utf-8"));
+        const dependencies = packageJSON.dependencies || { };
+        const noNJudahDependencies = Object.keys(dependencies)
+            .filter(aDependency => aDependency.indexOf("@njudah/") !== 0)
+            .reduce((previous, aDependency) => Object.assign(previous, { [aDependency]:dependencies[aDependency] }), { });
+        const noNJudahPackageJSON = Object.assign({ }, packageJSON, { dependencies: noNJudahDependencies });
+
+        writeFileSync(packageJSONPath, JSON.stringify(noNJudahPackageJSON, null, 2), "utf-8");
+
         const installationPath = await install(
         {
             workspace: WORKSPACE_DEPENDENCIES,
-            lockPath: join(packagePath, "package.json")
+            lockPath: packageJSONPath
         });
         
         await spawn("rm", ["-rf", join(installationPath, "@njudah")]);
 
         await spawn("ln", ["-s", installationPath, join(packagePath, "node_modules")]);       
+        
     }));
-
 
     const secondPassBuildPath = await timed("SECOND PASS", prePublish)(
     {
