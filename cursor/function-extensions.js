@@ -11,7 +11,17 @@ Function.prototype.await = function (state, ...args)
     const UUID = getFunctionCallUUID(this, undefined, args);
 
     if (deref.in(state, ["function", "UUID"], { }) === UUID)
-        return deref.in(state, ["response", "value"]);
+    {
+        const response = deref.in(state, ["response"]);
+
+        if (!response)
+            return undefined;
+
+        if (response.isError)
+            throw response.value;
+
+        return response.value;
+    }
 
     set(state, fromAsyncFunction(this)(...args));
 

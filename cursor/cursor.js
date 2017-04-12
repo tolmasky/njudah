@@ -90,18 +90,25 @@ module.exports.deref = deref;
 //    return Cursor.deref(Cursor.refine(aCursorOrObject, aKeyPath), aDefaultValue);
 function derefIn(aCursorOrObject, aKeyPath, aDefaultValue)
 {
-    var value = deref(aCursorOrObject, missing);
+    const value = deref(aCursorOrObject, missing);
+    const hasDefaultValue = arguments.length >= 3;
 
     if (value === missing)
-        if (arguments.length < 3)
+        if (!hasDefaultValue)
             throw new Error("Could not dereference cursor at [" + aCursorOrObject + "] ++ [" + aKeyPath + "]");
         else
             return aDefaultValue;
 
-    if (isArray(aKeyPath) || isIterable(aKeyPath))
-        return value.getIn(aKeyPath, aDefaultValue);
+    const getter = isArray(aKeyPath) || isIterable(aKeyPath) ? "getIn" : "get";
+    const secondValue = value[getter](aKeyPath, missing);
 
-    return value.get(aKeyPath, aDefaultValue);
+    if (secondValue === missing)
+        if (!hasDefaultValue)
+            throw new Error("Could not dereference cursor at [" + aCursorOrObject + "] ++ [" + aKeyPath + "]");
+        else
+            return aDefaultValue;
+
+    return secondValue;
 }
 
 module.exports.deref.in = derefIn;
