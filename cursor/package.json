@@ -1,6 +1,6 @@
 {
   "name": "@njudah/cursor",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Cursor program with tree",
   "main": "cursor.js",
   "scripts": {
@@ -10,11 +10,12 @@
   "author": "Francisco Ryan Tolmasky I",
   "license": "MIT",
   "dependencies": {
+  
   },
   "peerDependencies": {
     "generic-jsx": "13.0.0",
     "immutable": "3.8.1",
-    "@njudah/get-checksum": "2.0.0",
-    "@njudah/program": "2.0.0"
+    "@njudah/get-checksum": "3.0.0",
+    "@njudah/program": "3.0.0"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "njudah",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -15,5 +15,6 @@
     "generic-jsx": "^13.0.0",
     "immutable": "^3.8.1",
     "uuid": "^3.0.1"
-  }
+  },
+  "private": true
 }

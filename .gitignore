@@ -1,6 +1,6 @@
 .DS_Store
 
-pre-publish/build
+pre-publish/build-products
 fast-fs/build
 
 # Logs
