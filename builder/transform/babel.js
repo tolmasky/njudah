@@ -15,8 +15,8 @@ module.exports = function babel({ contents, options })
 
 module.exports.optimize = async function (aBabel)
 {
-    const { children, options = { }, ...rest } = getArguments(aBabel);
-    const optionsWithResolvedPluginsAndPresets = getOptionsWithResolvedPluginsAndPresets(options);
+    const { children, options:{ pluginsSearchDirectory, ...options, } = { }, ...rest } = getArguments(aBabel);
+    const optionsWithResolvedPluginsAndPresets = getOptionsWithResolvedPluginsAndPresets(options, pluginsSearchDirectory);
     const checksummableAttributes =
     {
         ...rest,
@@ -27,24 +27,24 @@ module.exports.optimize = async function (aBabel)
     return <aBabel options = { optionsWithResolvedPluginsAndPresets } checksum = { checksum } />;
 }
 
-function getOptionsWithResolvedPluginsAndPresets({ plugins = [], presets = [], ...rest })
+function getOptionsWithResolvedPluginsAndPresets({ plugins = [], presets = [], ...rest }, pluginsSearchDirectory)
 {
     const resolvePlugin = plugins.length && require("babel-core/lib/helpers/resolve-plugin");
     const resolvePreset = presets.length && require("babel-core/lib/helpers/resolve-preset");
 
     return  {
                 ...rest,
-                plugins: plugins.map(aPlugin => (resolve(resolvePlugin, aPlugin))),
-                presets: presets.map(aPreset => resolve(resolvePreset, aPreset))
+                plugins: plugins.map(aPlugin => (resolve(resolvePlugin, aPlugin, pluginsSearchDirectory))),
+                presets: presets.map(aPreset => resolve(resolvePreset, aPreset, pluginsSearchDirectory))
             };
 }
 
-function resolve(resolver, aPlugin)
+function resolve(resolver, aPlugin, pluginsSearchDirectory)
 {
     if (Array.isArray(aPlugin))
-        return [resolver(aPlugin[0]), aPlugin[1]];
+        return [resolver(aPlugin[0], pluginsSearchDirectory), aPlugin[1]];
 
-    return resolver(aPlugin);
+    return resolver(aPlugin, pluginsSearchDirectory);
 }
 
 async function getChecksummableOptions(options)

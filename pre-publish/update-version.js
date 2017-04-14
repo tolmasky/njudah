@@ -1,3 +1,4 @@
+const path = require("path");
 const version = process.argv[2];
 const fs = require("fs");
 const packages = fs.readdirSync("..")
