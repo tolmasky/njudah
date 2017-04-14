@@ -1,6 +1,6 @@
 {
   "name": "@njudah/builder",
-  "version": "6.0.0",
+  "version": "7.0.0",
   "description": "Build tool",
   "main": "builder.js",
   "scripts": {
@@ -10,11 +10,12 @@
   "author": "Francisco Ryan Tolmasky I",
   "license": "MIT",
   "dependencies": {
-    "@njudah/asynchronous": "6.0.0",
-    "@njudah/cursor": "6.0.0",
-    "@njudah/get-checksum": "6.0.0",
-    "@njudah/program": "6.0.0",
-    "@njudah/fast-fs": "6.0.0",
+    "@njudah/asynchronous": "7.0.0",
+    "@njudah/cursor": "7.0.0",
+    "@njudah/get-checksum": "7.0.0",
+    "@njudah/get-package-checksum": "7.0.0",
+    "@njudah/program": "7.0.0",
+    "@njudah/fast-fs": "7.0.0",
     "babel-core": "^6.23.1",
     "immutable": "3.8.1",
     "micromatch": "^2.3.11"
