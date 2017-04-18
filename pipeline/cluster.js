@@ -5,12 +5,11 @@ const { from } = require("generic-jsx");
 
 const { Request, Pipeline } = require("./pipeline");
 
-var eventPromise = require("../builder/event-promise");
-const waitOn = <eventPromise
+const event = require("@await/event");
+const waitOn = <event
     eventEmitter = { from("process") }
     resolveOn = "message"
-    rejectOn = { ["exit", "error", "close", "disconnect"] }
-    postProcess = { ([first]) => first } />;
+    rejectOn = { ["exit", "error", "close", "disconnect"] } />;
 
 module.exports = function ({ count, source })
 {

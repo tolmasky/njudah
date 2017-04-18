@@ -1,6 +1,6 @@
 {
-  "name": "pipeline",
-  "version": "1.0.0",
+  "name": "@njudah/pipeline",
+  "version": "9.0.0",
   "main": "./pipeline.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -8,5 +8,14 @@
   "keywords": [],
   "author": "Francisco Ryan Tolmasky I",
   "license": "MIT",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "@await/event": "^1.0.0",
+    "@njudah/program": "9.0.0",
+    "@njudah/asynchronous": "9.0.0"
+  },
+  "peerDependencies": {
+    "generic-jsx": "13.0.0",
+    "immutable": "3.8.1"
+  }
 }
