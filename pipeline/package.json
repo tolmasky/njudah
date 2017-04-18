@@ -11,8 +11,8 @@
   "description": "",
   "dependencies": {
     "@await/event": "^1.0.0",
-    "@njudah/program": "9.0.0",
-    "@njudah/asynchronous": "9.0.0"
+    "@njudah/asynchronous": "9.0.0",
+    "@njudah/program": "9.0.0"
   },
   "peerDependencies": {
     "generic-jsx": "13.0.0",

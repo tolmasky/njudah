@@ -9,7 +9,8 @@ const event = require("@await/event");
 const waitOn = <event
     eventEmitter = { from("process") }
     resolveOn = "message"
-    rejectOn = { ["exit", "error", "close", "disconnect"] } />;
+    rejectOn = { ["exit", "error", "close", "disconnect"] }
+    forceArray = { true } />;
 
 module.exports = function ({ count, source })
 {
@@ -28,7 +29,7 @@ module.exports = function ({ count, source })
 
             child.send(...data.args);
 
-            return (await promise);
+            return (await promise)[0];
         }
         catch (anException)
         {
