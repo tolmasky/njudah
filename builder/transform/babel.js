@@ -8,9 +8,9 @@ const { dirname } = require("path");
 
 const isArray = Array.isArray;
 
-module.exports = function babel({ contents, options })
+module.exports = function babel({ contents, options, source })
 {
-    return require("babel-core").transform(contents, options).code;
+    return require("babel-core").transform(contents, { ...options, filename: source }).code;
 }
 
 module.exports.optimize = async function (aBabel)

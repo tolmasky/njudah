@@ -19,7 +19,7 @@ async function transform({ source, destination, children:[aFunction] })
         return destination;
 
     const contents = await readFile(source, "utf-8");
-    const transformed = aFunction({ contents });
+    const transformed = aFunction({ contents, source });
 
     console.log("TRANSFORMING TO " + source);
 
