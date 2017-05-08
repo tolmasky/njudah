@@ -1,6 +1,6 @@
 {
   "name": "@njudah/pipeline",
-  "version": "10.0.0",
+  "version": "11.0.0",
   "main": "./pipeline.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -11,8 +11,8 @@
   "description": "",
   "dependencies": {
     "@await/event": "^1.0.0",
-    "@njudah/asynchronous": "10.0.0",
-    "@njudah/program": "10.0.0"
+    "@njudah/asynchronous": "11.0.0",
+    "@njudah/program": "11.0.0"
   },
   "peerDependencies": {
     "generic-jsx": "13.0.0",
