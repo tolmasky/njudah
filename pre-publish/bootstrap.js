@@ -6,9 +6,12 @@ const oldResolveLookupPaths = Module._resolveLookupPaths;
 const packages = path.dirname(path.dirname(__dirname));
 
 
-Module._resolveLookupPaths = function(request, parent)
+Module._resolveLookupPaths = function(request, parent, newReturn)
 {
-    const result = oldResolveLookupPaths(request, parent);
+    const result = oldResolveLookupPaths.apply(this, arguments);
+
+    if (newReturn)
+        return (result || []).concat(path.join(__dirname, "node_modules"), packages);
 
     return [result[0], result[1].concat(path.join(__dirname, "node_modules"), packages)];
 }

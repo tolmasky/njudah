@@ -54,8 +54,17 @@ module.exports.writeFile = function writeFile(...args)
     });
 }
 
-module.exports.copy = function copy({ source, destination })
+module.exports.copy = (function()
 {
+    const { promisify } = require("util");
+    const copyFile = promisify && fs.copyFile && promisify(fs.copyFile);
+
+    if (copyFile)
+        return function copy({ source, destination })
+        {
+            return copyFile(source, destination);
+        }
+
     return new Promise(function (resolve, reject)
     {
         fs.createReadStream(source)
@@ -64,7 +73,8 @@ module.exports.copy = function copy({ source, destination })
                 .on("error", reject)
                 .on("close", () => resolve(true)));
     })
-}
+})();
+
 
 module.exports.mkdir = function mkdir({ destination })
 {
