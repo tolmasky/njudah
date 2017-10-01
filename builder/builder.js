@@ -10,7 +10,7 @@ const { transform, find: findTransform } = require("./transform");
 const { refine, deref, set, exists, stem } = require("@njudah/cursor");
 
 const { lstatSync, readFileSync, readdirSync, mkdirSync, existsSync, copyFileSync } = require("fs");
-
+const stat = process.binding("fs").internalModuleStat;
 const id = x => x;
 const toMatcher = require("./to-matcher");
 var time = require("@njudah/cursor/time");
@@ -44,13 +44,17 @@ function Item({ source, state, ignore, checksum, ...rest })
     if (exists(ignored) ? deref(ignored) : set(ignored, ignore(source)))
          return set(checksum, "ignored");
 
-    const stat = lstatSync(source);//.memoizedCall(refine(state, "lstat"), source);
+    //const stat = lstatSync(source);//.memoizedCall(refine(state, "lstat"), source);
 //    const stat = lstat.await(refine(state, "lstat"), source);
 
 //    if (typeof stat !== "number")
 //        return;
 
-    const Type = stat.isDirectory() ? Directory : File;
+    //const stat = lstatSync(source);
+    //const Type = stat.isDirectory() ? Directory : File;
+
+    const type = stat.memoizedCall(refine(state, "lstat"), source)
+    const Type = type === 1 ? Directory : File;
     //stat === 1 ? Directory : File;
 
     return <Type
@@ -63,23 +67,29 @@ function Item({ source, state, ignore, checksum, ...rest })
 
 function File({ source, cache, checksum, transforms, state, destination })
 {
-    const fileChecksum = getFileChecksum(source);//.await(refine(state, "file-checksum"), source);
-
-    if (!fileChecksum)
-        return;
-
     const { transform, checksum: transformChecksum } = findTransform(source, transforms) || { };
+    const { contents, checksum: fileChecksum } =  getContentsAndChecksum
+        .memoizedCall(refine(state, "file"), source, transform ? "utf-8" : undefined);
     const checksumValue = set(checksum, getChecksum(JSON.stringify({ transformChecksum, fileChecksum })));
 
     set(checksum, checksumValue);
 
-    const artifactPath = transform ? path.join(cache, set(checksum, checksumValue) + path.extname(source)) : source;
-    const transformed = !transform || transform({ source, destination: artifactPath })
-    //transform.await(refine(state, "transformed"), { source, destination: artifactPath });
-    const copied = transformed && destination && copyFileSync(artifactPath, destination);
-    //copy.await(refine(state, "copy"), { source: artifactPath, destination });
+    if (!destination)
+        return "incomplete";
 
-    return copied ? "copied" : "incomplete";
+    const artifactPath = transform ? path.join(cache, set(checksum, checksumValue) + path.extname(source)) : source;
+    const transformed = !transform || transform({ source, contents, destination: artifactPath })
+
+    copyFileSync(artifactPath, destination);
+
+    return "copied";
+}
+
+function getContentsAndChecksum(source, format)
+{
+    const contents = readFileSync(source, format);
+
+    return { contents, checksum: getChecksum(contents) }
 }
 
 function Directory({ source, destination, cache, checksum, transforms, ignore, state })
@@ -90,7 +100,7 @@ function Directory({ source, destination, cache, checksum, transforms, ignore, s
     if (!files || !transforms)
         return <stem/>;
 
-    const checksumValue = deref(checksum, false) === false && 
+    const checksumValue = deref(checksum, false) === false &&
         files.every(aPath => deref.in(state, aPath + "-checksum", false)) &&
         set(checksum, getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
 
@@ -106,7 +116,7 @@ function Directory({ source, destination, cache, checksum, transforms, ignore, s
                         source = { aPath }
                         ignore = { ignore }
                         checksum = { refine(state, aPath + "-checksum") }
-                        transforms = { transforms } 
+                        transforms = { transforms }
                         state = { refine(state, aPath) }
                         cache = { cache }
                         destination = { completed && path.join(destination, path.basename(aPath)) } />)

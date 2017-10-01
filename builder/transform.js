@@ -15,14 +15,13 @@ const ArrayMap = Array.prototype.map;
 const { readFileSync, writeFileSync, existsSync } = require("fs");
 
 
-function transform({ source, destination, children:[aFunction] })
+function transform({ source, contents, destination, children:[aFunction] })
 {
-    if (existsSync(destination))
-        return destination;
+//    if (existsSync(destination))
+//        return destination;
 //    if (await lstat(destination) >= 0)
 //        return destination;
 
-    const contents = readFileSync(source, "utf-8");
     const transformed = aFunction({ contents, source });
 
     console.log("TRANSFORMING TO " + source);
