@@ -65,14 +65,17 @@ module.exports.copy = (function()
             return copyFile(source, destination);
         }
 
-    return new Promise(function (resolve, reject)
+    return function copy({ source, destination })
     {
-        fs.createReadStream(source)
-            .on("error", reject)
-            .pipe(fs.createWriteStream(destination)
+        return new Promise(function (resolve, reject)
+        {
+            fs.createReadStream(source)
                 .on("error", reject)
-                .on("close", () => resolve(true)));
-    })
+                .pipe(fs.createWriteStream(destination)
+                    .on("error", reject)
+                    .on("close", () => resolve(true)));
+        })
+    }
 })();
 
 
