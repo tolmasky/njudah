@@ -9,6 +9,8 @@ const getFileChecksum = require("./get-file-checksum");
 const { transform, find: findTransform } = require("./transform");
 const { refine, deref, set, exists, stem } = require("@njudah/cursor");
 
+const { lstatSync, readFileSync, readdirSync, mkdirSync, existsSync, copyFileSync } = require("fs");
+
 const id = x => x;
 const toMatcher = require("./to-matcher");
 var time = require("@njudah/cursor/time");
@@ -42,12 +44,14 @@ function Item({ source, state, ignore, checksum, ...rest })
     if (exists(ignored) ? deref(ignored) : set(ignored, ignore(source)))
          return set(checksum, "ignored");
 
-    const stat = lstat.await(refine(state, "lstat"), source);
+    const stat = lstatSync(source);//.memoizedCall(refine(state, "lstat"), source);
+//    const stat = lstat.await(refine(state, "lstat"), source);
 
-    if (typeof stat !== "number")
-        return;
+//    if (typeof stat !== "number")
+//        return;
 
-    const Type = stat === 1 ? Directory : File;
+    const Type = stat.isDirectory() ? Directory : File;
+    //stat === 1 ? Directory : File;
 
     return <Type
                 source = { source }
@@ -59,7 +63,7 @@ function Item({ source, state, ignore, checksum, ...rest })
 
 function File({ source, cache, checksum, transforms, state, destination })
 {
-    const fileChecksum = getFileChecksum.await(refine(state, "file-checksum"), source);
+    const fileChecksum = getFileChecksum(source);//.await(refine(state, "file-checksum"), source);
 
     if (!fileChecksum)
         return;
@@ -70,15 +74,18 @@ function File({ source, cache, checksum, transforms, state, destination })
     set(checksum, checksumValue);
 
     const artifactPath = transform ? path.join(cache, set(checksum, checksumValue) + path.extname(source)) : source;
-    const transformed = !transform || transform.await(refine(state, "transformed"), { source, destination: artifactPath });
-    const copied = transformed && destination && copy.await(refine(state, "copy"), { source: artifactPath, destination });
+    const transformed = !transform || transform({ source, destination: artifactPath })
+    //transform.await(refine(state, "transformed"), { source, destination: artifactPath });
+    const copied = transformed && destination && copyFileSync(artifactPath, destination);
+    //copy.await(refine(state, "copy"), { source: artifactPath, destination });
 
     return copied ? "copied" : "incomplete";
 }
 
 function Directory({ source, destination, cache, checksum, transforms, ignore, state })
 {
-    const files = readdir.await(refine(state, "files"), source);
+    //readdir.await(refine(state, "files"), source);
+    const files = readdirSync(source).map(name => path.join(source, name));
 
     if (!files || !transforms)
         return <stem/>;
@@ -87,7 +94,10 @@ function Directory({ source, destination, cache, checksum, transforms, ignore, s
         files.every(aPath => deref.in(state, aPath + "-checksum", false)) &&
         set(checksum, getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
 
-    const completed = destination && mkdir.await(refine(state, "mkdir"), { destination });
+    if (destination && !existsSync(destination))
+        mkdirSync(destination);
+
+    const completed = destination;// && (existsSync(destination) && mkdirSync(destination), destination);//mkdir.await(refine(state, "mkdir"), { destination });
 
     return  <stem path = { source } checksum = { checksumValue } >
             {

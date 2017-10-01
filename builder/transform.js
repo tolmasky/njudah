@@ -12,18 +12,22 @@ const isArray = Array.isArray;
 const isList = require("immutable").List.isList;
 const ArrayMap = Array.prototype.map;
 
+const { readFileSync, writeFileSync, existsSync } = require("fs");
 
-async function transform({ source, destination, children:[aFunction] })
+
+function transform({ source, destination, children:[aFunction] })
 {
-    if (await lstat(destination) >= 0)
+    if (existsSync(destination))
         return destination;
+//    if (await lstat(destination) >= 0)
+//        return destination;
 
-    const contents = await readFile(source, "utf-8");
+    const contents = readFileSync(source, "utf-8");
     const transformed = aFunction({ contents, source });
 
     console.log("TRANSFORMING TO " + source);
 
-    await writeFile(destination, transformed, "utf-8");
+    writeFileSync(destination, transformed, "utf-8");
 
     return destination;
 }
