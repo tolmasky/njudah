@@ -10,7 +10,10 @@ const isArray = Array.isArray;
 
 module.exports = function babel({ contents, options, source })
 {
-    return require("babel-core").transform(contents, { ...options, filename: source }).code;
+    const { code, metadata } = require("babel-core")
+        .transform(contents, { ...options, filename: source });
+
+    return { contents: code, metadata: metadata["plugins"] };
 }
 
 module.exports.optimize = async function (aBabel)

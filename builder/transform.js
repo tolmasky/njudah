@@ -12,23 +12,40 @@ const isArray = Array.isArray;
 const isList = require("immutable").List.isList;
 const ArrayMap = Array.prototype.map;
 
+const { basename, dirname, join } = require("path");
 const { readFileSync, writeFileSync, existsSync } = require("fs");
-
+const { write, mkdirp, tstat } = require("./fs-sync");
+const { stringify } = JSON;
 
 function transform({ source, contents, destination, children:[aFunction] })
 {
-//    if (existsSync(destination))
-//        return destination;
-//    if (await lstat(destination) >= 0)
-//        return destination;
+    const transformedPath = join(destination, "transformed.js");
+    const metadataPath = join(destination, "metdata.json");
 
+    if (tstat({ path: destination }) !== "ENOENT")
+        return { transformedPath, metadataPath };
+
+    mkdirp({ path: destination });
+
+    const encoding = "utf-8"
     const transformed = aFunction({ contents, source });
 
     console.log("TRANSFORMING TO " + source);
 
-    writeFileSync(destination, transformed, "utf-8");
+    if (typeof transformed === "string")
+        write({ path: transformedPath, contents: transformed, encoding });
+    
+    else
+    {
+        const { contents, metadata } = transformed;
 
-    return destination;
+        write({ path: transformedPath, contents, encoding });
+
+        if (metadata)
+            write({ path: metadataPath, contents: stringify(metadata, null, 2), encoding });
+    }
+
+    return { transformedPath, metadataPath };
 }
 
 

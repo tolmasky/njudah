@@ -42,7 +42,7 @@ function item({ source, state, ignore, ...rest })
                     state = { refine(state, "implementation") } />;
 }
 
-function file({ source, cache, transforms, state, destination })
+function file({ source, cache, transforms, state, metadata, destination })
 {
     const { transform, checksum: transformChecksum } = findTransform.mcall(
         refine(state, "find-checksum"), source, transforms) || { };
@@ -52,18 +52,15 @@ function file({ source, cache, transforms, state, destination })
 
     const contents = read({ path: source, encoding: "utf-8" });
     const fileChecksum = getChecksum(contents);
-    const checksum = getChecksum(stringify({ transformChecksum, fileChecksum }));
-    const artifact = join(cache, checksum + extname(source));
+    const extension = extname(source);
+    const checksum = getChecksum(stringify({ transformChecksum, fileChecksum, extension }));
 
-    return  <stem>
-                {   tstat({ path: artifact }) === "ENOENT" &&
-                    <transform  source = { source }
-                                contents = { contents }
-                                destination = { artifact }/>
-                }
-                <copy   source = { artifact }
-                        destination = { destination } />
-            </stem>;
+    const artifactsPath = join(cache, checksum);
+    const { transformedPath, metadataPath } =
+        transform({ source, contents, destination: artifactsPath });
+
+    return  <copy   source = { transformedPath }
+                    destination = { destination } />;
 }
 
 function directory({ source, cache, transforms, state, ignore, destination })
