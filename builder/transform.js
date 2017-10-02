@@ -14,38 +14,38 @@ const ArrayMap = Array.prototype.map;
 
 const { basename, dirname, join } = require("path");
 const { readFileSync, writeFileSync, existsSync } = require("fs");
-const { write, mkdirp, tstat } = require("./fs-sync");
-const { stringify } = JSON;
+const { write, mkdirp, tstat, read } = require("./fs-sync");
+const { parse, stringify } = JSON;
 
 function transform({ source, contents, destination, children:[aFunction] })
 {
-    const transformedPath = join(destination + "-transformed.js");
+    const encoding = "utf-8"
+    const transformedPath = join(destination + "-contents.js");
     const metadataPath = join(destination + "-metdata.json");
 
     if (tstat({ path: transformedPath }) !== "ENOENT")
-        return { transformedPath, metadataPath };
-
-//    mkdirp({ path: destination });
-
-    const encoding = "utf-8"
-    const transformed = aFunction({ contents, source });
+        return { transformedPath, metadata: getMetadata(metadataPath) };
 
     console.log("TRANSFORMING TO " + source);
 
-    if (typeof transformed === "string")
-        write({ path: transformedPath, contents: transformed, encoding });
-    
-    else
-    {
-        const { contents, metadata } = transformed;
+    const { contents: transformedContents, metadata } =
+        aFunction({ contents, source });
+    const metadataContents = !!metadata && stringify(metadata, null, 2);
 
-        write({ path: transformedPath, contents, encoding });
+    write({ path: transformedPath, contents: transformedContents, encoding });
 
-        if (metadata)
-            write({ path: metadataPath, contents: stringify(metadata, null, 2), encoding });
-    }
+    if (metadata)
+        write({ path: metadataPath, contents: metadataContents, encoding });
 
-    return { transformedPath, metadataPath };
+    return { transformedPath, metadata };
+}
+
+function getMetadata(path)
+{
+    if (tstat({ path }) === "ENOENT")
+        return undefined;
+
+    return parse(read({ path, encoding: "utf-8" }))
 }
 
 

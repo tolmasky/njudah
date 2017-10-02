@@ -6,6 +6,7 @@ const { refine, deref, set, exists, stem } = require("@njudah/cursor");
 const { join, basename, extname } = require("path");
 const { stringify } = JSON;
 const getChecksum = require("@njudah/get-checksum");
+const { fromJS, Map } = require("immutable");
 
 
 module.exports.build = function build({ source, destination, cache, state, children = [], ignore })
@@ -56,19 +57,25 @@ function file({ source, cache, transforms, state, metadata, destination })
     const checksum = getChecksum(stringify({ transformChecksum, fileChecksum, extension }));
 
     const artifactsPath = join(cache, checksum);
-    const { transformedPath, metadataPath } =
+    const transformed =
         transform({ source, contents, destination: artifactsPath });
 
-    return  <copy   source = { transformedPath }
+    if (!exists(metadata) && transformed.metadata)
+        set(metadata, fromJS(transformed.metadata));
+
+    return  <copy   source = { transformed.transformedPath }
                     destination = { destination } />;
 }
 
-function directory({ source, cache, transforms, state, ignore, destination })
+function directory({ source, cache, transforms, state, ignore, metadata, destination })
 {
     const children = readdir.mcall(refine(state, "children"), { path: source });
 
     if (children.length <= 0 || !transforms)
         return <stem/>;
+
+    if (!exists(metadata))
+        set(metadata, Map());
 
     return  <stem path = { source } >
                 <mkdirp path = { destination } />
@@ -78,7 +85,8 @@ function directory({ source, cache, transforms, state, ignore, destination })
                             transforms = { transforms }
                             state = { refine(state, name) }
                             cache = { cache }
-                            destination = { join(destination, basename(name)) } />)
+                            destination = { join(destination, basename(name)) }
+                            metadata = { refine(metadata, name) } />)
                 }
             </stem>;
 }
