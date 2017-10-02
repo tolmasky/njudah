@@ -19,13 +19,13 @@ const { stringify } = JSON;
 
 function transform({ source, contents, destination, children:[aFunction] })
 {
-    const transformedPath = join(destination, "transformed.js");
-    const metadataPath = join(destination, "metdata.json");
+    const transformedPath = join(destination + "-transformed.js");
+    const metadataPath = join(destination + "-metdata.json");
 
-    if (tstat({ path: destination }) !== "ENOENT")
+    if (tstat({ path: transformedPath }) !== "ENOENT")
         return { transformedPath, metadataPath };
 
-    mkdirp({ path: destination });
+//    mkdirp({ path: destination });
 
     const encoding = "utf-8"
     const transformed = aFunction({ contents, source });
