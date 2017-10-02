@@ -43,6 +43,8 @@ Function.prototype.memoizedCall = function (aCursor, ...args)
     return set(previousResult, this.apply(this, args));
 }
 
+Function.prototype.mcall = Function.prototype.memoizedCall;
+
 
 Object.defineProperty(Function.prototype, "result",
 {
