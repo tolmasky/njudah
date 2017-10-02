@@ -1,126 +1,94 @@
 
-const path = require("path");
-
-const { lstat, readdir, mkdir, copy } = require("@njudah/fast-fs");
-
-const getChecksum = require("@njudah/get-checksum");
-const getFileChecksum = require("./get-file-checksum");
-
-const { transform, find: findTransform } = require("./transform");
-const { refine, deref, set, exists, stem } = require("@njudah/cursor");
-
-const { lstatSync, readFileSync, readdirSync, mkdirSync, existsSync, copyFileSync } = require("fs");
-const stat = process.binding("fs").internalModuleStat;
-const id = x => x;
+const { mkdirp, tstat, readdir, copy, read } = require("./fs-sync");
+const { find: findTransform, transform } = require("./transform");
 const toMatcher = require("./to-matcher");
-var time = require("@njudah/cursor/time");
+const { refine, deref, set, exists, stem } = require("@njudah/cursor");
+const { join, basename, extname } = require("path");
+const { stringify } = JSON;
+const getChecksum = require("@njudah/get-checksum");
+const { fromJS, Map } = require("immutable");
 
-module.exports = Build;
-module.exports.build = Build;
-module.exports.transform = transform;
 
-function Build({ source, destination, state, children = [], ignore })
+module.exports.build = function build({ source, destination, cache, state, children = [], ignore })
 {
-    const checksum = refine(state, "checksum");
-    const checksumValue = deref(checksum, false);
+    const ignoreMatcher = toMatcher.mcall(refine(state, "ignore"), ignore, destination, "**/.*");
+    const metadata = refine(state, "metadata");
 
-    const cachePath = path.join(destination, "cache");
-    const productPath = checksumValue && path.join(destination, checksumValue, path.extname(source));
-    const ignoreMatcher = toMatcher.memoizedCall(refine(state, "ignore"), ignore, destination, "**/.*");
-
-    return <Item    source = { source }
-                    state = { refine(state, "item") }
-                    transforms = { transform.optimize.await(refine(state, "optimize"), children) }
-                    checksum = { checksum }
-                    ignore = { ignoreMatcher }
-                    cache = { mkdir.p.await(refine(state, "cache"), cachePath) }
-                    destination = { productPath && mkdir.p.await(refine(state, "product"), productPath) } />;
+    return  <stem>
+                <mkdirp path = { destination } />
+                <mkdirp path = { cache } />
+                <item   source = { source }
+                        state = { refine(state, "item") }
+                        transforms = { transform.optimize.await(refine(state, "optimize"), children) }
+                        ignore = { ignoreMatcher }
+                        cache = { cache }
+                        metadata = { metadata }
+                        destination = { destination } />
+            </stem>
 }
 
-function Item({ source, state, ignore, checksum, ...rest })
+module.exports.transform = require("./transform");
+
+function item({ source, state, ignore, ...rest })
 {
-    const ignored = refine(state, "ignored");
+    if (ignore.mcall(refine(state, "ignored"), source))
+        return "ignored";
 
-    if (exists(ignored) ? deref(ignored) : set(ignored, ignore(source)))
-         return set(checksum, "ignored");
+    const which = tstat.mcall(refine(state, "type"), { path: source });
+    const type = which === "file" ? file : directory;
 
-    //const stat = lstatSync(source);//.memoizedCall(refine(state, "lstat"), source);
-//    const stat = lstat.await(refine(state, "lstat"), source);
-
-//    if (typeof stat !== "number")
-//        return;
-
-    //const stat = lstatSync(source);
-    //const Type = stat.isDirectory() ? Directory : File;
-
-    const type = stat.memoizedCall(refine(state, "lstat"), source)
-    const Type = type === 1 ? Directory : File;
-    //stat === 1 ? Directory : File;
-
-    return <Type
-                source = { source }
-                ignore = { ignore }
-                checksum = { checksum }
-                { ...rest }
-                state = { refine(state, "type") } />;
+    return <type    source = { source }
+                    ignore = { ignore }
+                    { ...rest }
+                    state = { refine(state, "implementation") } />;
 }
 
-function File({ source, cache, checksum, transforms, state, destination })
+function file({ source, cache, transforms, state, metadata, destination })
 {
-    const { transform, checksum: transformChecksum } = findTransform(source, transforms) || { };
-    const { contents, checksum: fileChecksum } =  getContentsAndChecksum
-        .memoizedCall(refine(state, "file"), source, transform ? "utf-8" : undefined);
-    const checksumValue = set(checksum, getChecksum(JSON.stringify({ transformChecksum, fileChecksum })));
+    const { transform, checksum: transformChecksum } = findTransform.mcall(
+        refine(state, "find-checksum"), source, transforms) || { };
 
-    set(checksum, checksumValue);
+    if (!transform)
+        return <copy source = { source } destination = { destination } />;
 
-    if (!destination)
-        return "incomplete";
+    const contents = read({ path: source, encoding: "utf-8" });
+    const fileChecksum = getChecksum(contents);
+    const extension = extname(source);
+    const checksum = getChecksum(stringify({ transformChecksum, fileChecksum, extension }));
 
-    const artifactPath = transform ? path.join(cache, set(checksum, checksumValue) + path.extname(source)) : source;
-    const transformed = !transform || transform({ source, contents, destination: artifactPath })
+    const artifactsPath = join(cache, checksum);
+    const transformed =
+        transform({ source, contents, destination: artifactsPath });
 
-    copyFileSync(artifactPath, destination);
+    if (!exists(metadata) && transformed.metadata)
+        set(metadata, fromJS(transformed.metadata));
 
-    return "copied";
+    return  <copy   source = { transformed.transformedPath }
+                    destination = { destination } />;
 }
 
-function getContentsAndChecksum(source, format)
+function directory({ source, cache, transforms, state, ignore, metadata, destination })
 {
-    const contents = readFileSync(source, format);
+    const children = readdir.mcall(refine(state, "children"), { path: source });
 
-    return { contents, checksum: getChecksum(contents) }
-}
-
-function Directory({ source, destination, cache, checksum, transforms, ignore, state })
-{
-    //readdir.await(refine(state, "files"), source);
-    const files = readdirSync(source).map(name => path.join(source, name));
-
-    if (!files || !transforms)
+    if (children.length <= 0 || !transforms)
         return <stem/>;
 
-    const checksumValue = deref(checksum, false) === false &&
-        files.every(aPath => deref.in(state, aPath + "-checksum", false)) &&
-        set(checksum, getChecksum(...files.map(aPath => deref.in(state, aPath + "-checksum", false))));
+    if (!exists(metadata))
+        set(metadata, Map());
 
-    if (destination && !existsSync(destination))
-        mkdirSync(destination);
-
-    const completed = destination;// && (existsSync(destination) && mkdirSync(destination), destination);//mkdir.await(refine(state, "mkdir"), { destination });
-
-    return  <stem path = { source } checksum = { checksumValue } >
-            {
-                files.map(aPath =>
-                    <Item
-                        source = { aPath }
-                        ignore = { ignore }
-                        checksum = { refine(state, aPath + "-checksum") }
-                        transforms = { transforms }
-                        state = { refine(state, aPath) }
-                        cache = { cache }
-                        destination = { completed && path.join(destination, path.basename(aPath)) } />)
-            }
+    return  <stem path = { source } >
+                <mkdirp path = { destination } />
+                {   children.map(name =>
+                    <item   source = { join(source, name) }
+                            ignore = { ignore }
+                            transforms = { transforms }
+                            state = { refine(state, name) }
+                            cache = { cache }
+                            destination = { join(destination, basename(name)) }
+                            metadata = { refine(metadata, name) } />)
+                }
             </stem>;
 }
+
 
