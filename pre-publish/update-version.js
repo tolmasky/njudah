@@ -1,19 +1,30 @@
-const path = require("path");
-const version = process.argv[2];
-const fs = require("fs");
-const packages = fs.readdirSync("..")
-    .map(aPath => path.join(__dirname, "..", aPath))
-    .filter(aPath => path.basename(aPath).charAt(0) !== "." && fs.lstatSync(aPath).isDirectory());
 
-const packageJSONs = packages.map(aPackagePath => require(path.join(aPackagePath, "package.json")));
-const upgradedPackageJSONs = packageJSONs.map(aPackageJSON => Object.assign({ },
-    aPackageJSON,
-    { "version": version },
-    upgradeDependencies(aPackageJSON, "dependencies"),
-    upgradeDependencies(aPackageJSON, "peerDependencies")));
 
-packages.forEach((aPath, anIndex) =>
-    fs.writeFileSync(path.join(aPath, "package.json"), JSON.stringify(upgradedPackageJSONs[anIndex], null, 2), "utf-8"))
+const { basename, join } = require("path");
+const { readdir, tstat, write } = require("../builder/fs-sync");
+const stringify = object => JSON.stringify(object, null, 2);
+
+const PathSymbol = Symbol("path");
+
+const { version } = require("commander")
+    .option("--version [version]", "version")
+    .parse(process.argv);
+
+const packages = readdir({ path: ".." })
+    .map(path => join(__dirname, "..", path))
+    .filter(path => basename(path).charAt(0) !== "." && tstat({ path }) === "directory")
+    .map(path => join(path, "package.json"));
+
+const upgrades = packages
+    .map(path => ({ [PathSymbol]: path, ...require(path) }))
+    .map(properties => Object.assign(
+        { ...properties, version },
+        upgradeDependencies(properties, "dependencies"),
+        upgradeDependencies(properties, "peerDependencies")))
+    .map(properties => [properties[PathSymbol], stringify(properties)])
+
+for ([path, contents] of upgrades)
+    write({ path, contents, encoding: "utf-8" });
 
 function upgradeDependencies(aPackageJSON, aKey)
 {
