@@ -1,6 +1,6 @@
 {
   "name": "@njudah/program",
-  "version": "11.0.0",
+  "version": "12.0.0-beta",
   "description": "Basic program",
   "main": "program.js",
   "scripts": {
