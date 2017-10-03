@@ -12,7 +12,6 @@
   "dependencies": {
     "@njudah/asynchronous": "11.0.0",
     "@njudah/cursor": "11.0.0",
-    "@njudah/fast-fs": "11.0.0",
     "@njudah/get-checksum": "11.0.0",
     "@njudah/get-package-checksum": "11.0.0",
     "@njudah/program": "11.0.0",

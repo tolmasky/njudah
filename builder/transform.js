@@ -2,7 +2,6 @@
 const Call = (Function.prototype.call).bind(Function.prototype.call);
 const Apply = (Function.prototype.call).bind(Function.prototype.apply);
 
-const { lstat, readFile, writeFile } = require("@njudah/fast-fs");
 const { base, getArguments } = require("generic-jsx");
 
 const getChecksum = require("@njudah/get-checksum");
