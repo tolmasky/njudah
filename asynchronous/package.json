@@ -1,6 +1,6 @@
 {
   "name": "@njudah/asynchronous",
-  "version": "12.0.0-beta",
+  "version": "12.0.0@beta-2",
   "description": "Asynchronous program",
   "main": "",
   "scripts": {
@@ -11,7 +11,7 @@
   "license": "MIT",
   "peerDependencies": {
     "immutable": "3.8.1",
-    "@njudah/get-checksum": "12.0.0-beta",
-    "@njudah/program": "12.0.0-beta"
+    "@njudah/get-checksum": "12.0.0@beta-2",
+    "@njudah/program": "12.0.0@beta-2"
   }
 }
