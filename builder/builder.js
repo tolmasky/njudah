@@ -7,12 +7,14 @@ const { join, basename, extname } = require("path");
 const { stringify } = JSON;
 const getChecksum = require("@njudah/get-checksum");
 const { fromJS, Map } = require("immutable");
+const uuid = require("uuid");
 
 
 module.exports.build = function build({ source, destination, cache, state, children = [], ignore })
 {
     const ignoreMatcher = toMatcher.mcall(refine(state, "ignore"), ignore, destination, "**/.*");
     const metadata = refine(state, "metadata");
+    const unique = uuid.mcall(refine(state, "uuid"));
 
     return  <stem>
                 <mkdirp path = { destination } />
@@ -23,7 +25,7 @@ module.exports.build = function build({ source, destination, cache, state, child
                         ignore = { ignoreMatcher }
                         cache = { cache }
                         metadata = { metadata }
-                        destination = { destination } />
+                        destination = { join(destination, unique) } />
             </stem>
 }
 

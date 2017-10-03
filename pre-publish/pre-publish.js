@@ -1,17 +1,19 @@
 "use strict";
 
-
 const path = require("path");
-
 const resolve = aPath => path.resolve(__dirname, aPath);
-const source = process.argv[2] === "--source" ? process.argv[3] : resolve("..");
-const destination = process.argv[4] === "--destination" ? process.argv[5] : resolve("build-products");
 
+const options = require("commander")
+    .option("--source [source]", "source", resolve(".."))
+    .option("--destination [destination]", "destination", resolve("./build-products"))
+    .option("--cache [cache]", "cache", "/tmp/builder-cache")
+    .option("--no-register")
+    .parse(process.argv);
 
-require("./bootstrap")({ babelRegister: !(process.argv[6] === "--no-register") });
+require("./bootstrap")({ babelRegister: !options.noRegister });
 
 const getBuildSettings = require("./get-build-settings");
 const build = require("@njudah/builder/promisified");
+const { source, cache, destination } = options;
 
-
-build(getBuildSettings({ source, destination })).then(console.log);
+build(getBuildSettings({ source, cache, destination })).then(console.log);

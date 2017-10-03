@@ -6,7 +6,7 @@ module.exports = function (aBuild)
 {
     return promisified(toCurriedFunction(aBuild), function (aState)
     {
-        return aState.getIn(["attributes", "destination"]) + "/" + aState.getIn(["attributes", "state", "checksum"]);
+        return aState.tree.children[2].binding.attributes["destination"].value;
     });
 }
 
