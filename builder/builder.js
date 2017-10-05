@@ -3,7 +3,7 @@ const { mkdirp, tstat, readdir, copy, read } = require("./fs-sync");
 const { find: findTransform, transform } = require("./transform");
 const toMatcher = require("./to-matcher");
 const { refine, deref, set, exists, stem } = require("@njudah/cursor");
-const { join, basename, extname } = require("path");
+const { relative, join, basename, extname } = require("path");
 const { stringify } = JSON;
 const getChecksum = require("@njudah/get-checksum");
 const { fromJS, Map } = require("immutable");
@@ -19,7 +19,8 @@ module.exports.build = function build({ source, destination, cache, state, child
     return  <stem>
                 <mkdirp path = { destination } />
                 <mkdirp path = { cache } />
-                <item   source = { source }
+                <item   root = { source }
+                        source = { source }
                         state = { refine(state, "item") }
                         transforms = { transform.optimize.await(refine(state, "optimize"), children) }
                         ignore = { ignoreMatcher }
@@ -45,7 +46,7 @@ function item({ source, state, ignore, ...rest })
                     state = { refine(state, "implementation") } />;
 }
 
-function file({ source, cache, transforms, state, metadata, destination })
+function file({ source, cache, transforms, state, metadata, destination, root })
 {
     const { transform, checksum: transformChecksum } = findTransform.mcall(
         refine(state, "find-checksum"), source, transforms) || { };
@@ -59,8 +60,9 @@ function file({ source, cache, transforms, state, metadata, destination })
     const checksum = getChecksum(stringify({ transformChecksum, fileChecksum, extension }));
 
     const artifactsPath = join(cache, checksum);
+    const rooted = join("~", relative(root, source));
     const transformed =
-        transform({ source, contents, destination: artifactsPath });
+        transform({ source: rooted, contents, destination: artifactsPath });
 
     if (!exists(metadata) && transformed.metadata)
         set(metadata, fromJS(transformed.metadata));
@@ -69,7 +71,7 @@ function file({ source, cache, transforms, state, metadata, destination })
                     destination = { destination } />;
 }
 
-function directory({ source, cache, transforms, state, ignore, metadata, destination })
+function directory({ source, cache, transforms, state, ignore, metadata, destination, root })
 {
     const children = readdir.mcall(refine(state, "children"), { path: source });
 
@@ -82,7 +84,8 @@ function directory({ source, cache, transforms, state, ignore, metadata, destina
     return  <stem path = { source } >
                 <mkdirp path = { destination } />
                 {   children.map(name =>
-                    <item   source = { join(source, name) }
+                    <item   root = { root }
+                            source = { join(source, name) }
                             ignore = { ignore }
                             transforms = { transforms }
                             state = { refine(state, name) }

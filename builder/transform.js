@@ -25,7 +25,7 @@ function transform({ source, contents, destination, children:[aFunction] })
     if (tstat({ path: transformedPath }) !== "ENOENT")
         return { transformedPath, metadata: getMetadata(metadataPath) };
 
-    console.log("TRANSFORMING TO " + source);
+    console.log("TRANSFORMING " + source);
 
     const { contents: transformedContents, metadata } =
         aFunction({ contents, source });
