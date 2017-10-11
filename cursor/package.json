@@ -1,6 +1,6 @@
 {
   "name": "@njudah/cursor",
-  "version": "12.0.0-beta.3",
+  "version": "12.0.0-beta.4",
   "description": "Cursor program with tree",
   "main": "cursor.js",
   "scripts": {
@@ -13,7 +13,7 @@
   "peerDependencies": {
     "generic-jsx": "13.0.0",
     "immutable": "3.8.1",
-    "@njudah/get-checksum": "12.0.0-beta.3",
-    "@njudah/program": "12.0.0-beta.3"
+    "@njudah/get-checksum": "12.0.0-beta.4",
+    "@njudah/program": "12.0.0-beta.4"
   }
 }
