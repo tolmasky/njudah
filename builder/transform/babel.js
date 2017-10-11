@@ -8,10 +8,10 @@ const { dirname } = require("path");
 
 const isArray = Array.isArray;
 
-module.exports = function babel({ contents, options, source })
+module.exports = function babel({ contents, options, root, source })
 {
     const { code, metadata } = require("babel-core")
-        .transform(contents, { ...options, filename: source });
+        .transform(contents, { ...options, filename: source, sourceRoot: root });
 
     return { contents: code, metadata: metadata["plugins"] };
 }

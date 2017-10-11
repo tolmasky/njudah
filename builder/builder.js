@@ -3,7 +3,7 @@ const { mkdirp, tstat, readdir, copy, read } = require("./fs-sync");
 const { find: findTransform, transform } = require("./transform");
 const toMatcher = require("./to-matcher");
 const { refine, deref, set, exists, stem } = require("@njudah/cursor");
-const { relative, join, basename, extname } = require("path");
+const { relative, join, basename, extname, resolve } = require("path");
 const { stringify } = JSON;
 const getChecksum = require("@njudah/get-checksum");
 const { fromJS, Map } = require("immutable");
@@ -15,12 +15,13 @@ module.exports.build = function build({ source, destination, cache, state, child
     const ignoreMatcher = toMatcher.mcall(refine(state, "ignore"), ignore, destination, "**/.*");
     const metadata = refine(state, "metadata");
     const unique = uuid.mcall(refine(state, "uuid"));
+    const root = resolve(source);
 
     return  <stem>
                 <mkdirp path = { destination } />
                 <mkdirp path = { cache } />
-                <item   root = { source }
-                        source = { source }
+                <item   root = { root }
+                        source = { root }
                         state = { refine(state, "item") }
                         transforms = { transform.optimize.await(refine(state, "optimize"), children) }
                         ignore = { ignoreMatcher }
@@ -62,7 +63,7 @@ function file({ source, cache, transforms, state, metadata, destination, root })
     const artifactsPath = join(cache, checksum);
     const rooted = join("~", relative(root, source));
     const transformed =
-        transform({ source: rooted, contents, destination: artifactsPath });
+        transform({ source: rooted, root, contents, destination: artifactsPath });
 
     if (!exists(metadata) && transformed.metadata)
         set(metadata, fromJS(transformed.metadata));

@@ -6,7 +6,7 @@ const resolve = aPath => path.resolve(__dirname, aPath);
 const options = require("commander")
     .option("--source [source]", "source", resolve(".."))
     .option("--destination [destination]", "destination", resolve("./build-products"))
-    .option("--cache [cache]", "cache", "/tmp/builder-cache")
+    .option("--cache [cache]", "cache", resolve("./build-products/cache"))
     .option("--no-register")
     .parse(process.argv);
 

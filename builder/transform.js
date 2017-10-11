@@ -16,7 +16,7 @@ const { readFileSync, writeFileSync, existsSync } = require("fs");
 const { write, mkdirp, tstat, read } = require("./fs-sync");
 const { parse, stringify } = JSON;
 
-function transform({ source, contents, destination, children:[aFunction] })
+function transform({ source, root, contents, destination, children:[aFunction] })
 {
     const encoding = "utf-8"
     const transformedPath = join(destination + "-contents.js");
@@ -28,7 +28,7 @@ function transform({ source, contents, destination, children:[aFunction] })
     console.log("TRANSFORMING " + source);
 
     const { contents: transformedContents, metadata } =
-        aFunction({ contents, source });
+        aFunction({ contents, source, root });
     const metadataContents = !!metadata && stringify(metadata, null, 2);
 
     write({ path: transformedPath, contents: transformedContents, encoding });
